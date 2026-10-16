@@ -53,7 +53,7 @@ export interface User {
 
 export const api = {
   me: () => request<{ user: User | null }>('/api/auth/me'),
-  signup: (input: { name: string; email: string; dob: string; password: string; confirmPassword: string }) =>
+  signup: (input: { name: string; email: string; password: string; confirmPassword: string }) =>
     request<{ user: User }>('/api/auth/signup', { method: 'POST', body: JSON.stringify(input) }),
   login: (email: string, password: string) =>
     request<{ user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),

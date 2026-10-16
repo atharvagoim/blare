@@ -88,13 +88,6 @@ export const signupSchema = z
   .object({
     name: z.string().trim().min(1, 'Enter your full name.').max(80, 'Name is too long.'),
     email: accountEmail,
-    dob: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter your date of birth.')
-      .refine((v) => {
-        const d = new Date(`${v}T00:00:00Z`);
-        return !Number.isNaN(d.getTime()) && d.getTime() < Date.now() && d.getUTCFullYear() >= 1900;
-      }, 'Enter a valid date of birth.'),
     password,
     confirmPassword: z.string(),
   })

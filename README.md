@@ -48,7 +48,7 @@ Viewer  ──GET /api/shares/:id───────────▶ Vercel fun
 | `DELETE` | `/api/shares/:id` | Creating browser (`X-Manage-Token`) or owner session. Deletes immediately. |
 | `POST` | `/api/shares/:id/otp` | No body. Emails a PIN to the owner account. |
 | `POST` | `/api/shares/:id/verify` | `{code}`: the PIN. Sets a per-share access cookie. |
-| `POST` | `/api/auth/signup` | `{name, email, dob, password, confirmPassword}`. Creates the account and logs in. |
+| `POST` | `/api/auth/signup` | `{name, email, password, confirmPassword}`. Creates the account and logs in. |
 | `POST` | `/api/auth/login` | `{email, password}`. |
 | `POST` | `/api/auth/logout` | Clears the session. |
 | `GET` | `/api/auth/me` | `{user}` or `{user: null}`. |

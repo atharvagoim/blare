@@ -70,15 +70,13 @@ describe('classifyFileName', () => {
 });
 
 describe('signupSchema', () => {
-  const ok = { name: 'Atharva', email: 'a@b.co', dob: '2000-01-15', password: 'correct-horse', confirmPassword: 'correct-horse' };
+  const ok = { name: 'Atharva', email: 'a@b.co', password: 'correct-horse', confirmPassword: 'correct-horse' };
   it('accepts a valid sign-up', () => {
     expect(signupSchema.safeParse(ok).success).toBe(true);
   });
-  it('rejects mismatched or short passwords, bad dates and bad emails', () => {
+  it('rejects mismatched or short passwords, and bad emails', () => {
     expect(signupSchema.safeParse({ ...ok, confirmPassword: 'x' }).success).toBe(false);
     expect(signupSchema.safeParse({ ...ok, password: 'short', confirmPassword: 'short' }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...ok, dob: '2999-01-01' }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...ok, dob: '15/01/2000' }).success).toBe(false);
     expect(signupSchema.safeParse({ ...ok, email: 'nope' }).success).toBe(false);
     expect(signupSchema.safeParse({ ...ok, name: '  ' }).success).toBe(false);
   });

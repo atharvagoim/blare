@@ -87,7 +87,6 @@ const userSchema = new Schema(
     _id: { type: String, required: true }, // 128-bit random
     name: { type: String, required: true, maxlength: 80 },
     email: { type: String, required: true, maxlength: 254 }, // normalised lower-case
-    dob: { type: Date, required: true },
     passwordHash: { type: String, required: true }, // scrypt
   },
   { timestamps: true, versionKey: false },

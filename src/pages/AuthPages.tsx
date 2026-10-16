@@ -134,8 +134,6 @@ export function SignupPage() {
   const done = useAfterAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [dob, setDob] = useState('');
-  const [dobType, setDobType] = useState<'text' | 'date'>('text');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
@@ -150,12 +148,11 @@ export function SignupPage() {
     setError(null);
     if (!name.trim()) return setError('Enter your full name.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email ID.');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) return setError('Enter your date of birth.');
     if (password.length < 8) return setError('Password must be at least 8 characters.');
     if (password !== confirm) return setError('Passwords do not match.');
     setBusy(true);
     try {
-      const { user } = await api.signup({ name: name.trim(), email: email.trim(), dob, password, confirmPassword: confirm });
+      const { user } = await api.signup({ name: name.trim(), email: email.trim(), password, confirmPassword: confirm });
       setUser(user);
       done();
     } catch (err) {
@@ -171,26 +168,14 @@ export function SignupPage() {
         <Monkey src={monkey} rect={{ left: 228, top: 150, width: 115, height: 134 }} />
         <Field id="signup-name" top={275} textLeft={26.91} placeholder="Full name" autoComplete="name" value={name} onChange={setName} />
         <Field id="signup-email" top={333} textLeft={27.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" value={email} onChange={setEmail} />
-        <Field
-          id="signup-dob"
-          top={391}
-          textLeft={29.7}
-          placeholder="DOB"
-          type={dobType}
-          autoComplete="bday"
-          value={dob}
-          onChange={setDob}
-          onFocus={() => setDobType('date')}
-          onBlur={() => !dob && setDobType('text')}
-        />
-        <Field id="signup-password" top={449} textLeft={29.32} placeholder="Password" password autoComplete="new-password" value={password} onChange={setPassword} />
-        <Field id="signup-confirm" top={507} textLeft={28.13} placeholder="ConfirmPassword" password autoComplete="new-password" value={confirm} onChange={setConfirm} />
-        <Pill type="submit" variant="black" rect={{ left: 127, top: 568, width: 148, height: 41 }} label={busy ? 'Creating…' : 'Sign up'} disabled={busy} />
-        <p className="switch-note" style={{ top: 622 }}>
+        <Field id="signup-password" top={391} textLeft={29.32} placeholder="Password" password autoComplete="new-password" value={password} onChange={setPassword} />
+        <Field id="signup-confirm" top={449} textLeft={28.13} placeholder="ConfirmPassword" password autoComplete="new-password" value={confirm} onChange={setConfirm} />
+        <Pill type="submit" variant="black" rect={{ left: 127, top: 520, width: 148, height: 41 }} label={busy ? 'Creating…' : 'Sign up'} disabled={busy} />
+        <p className="switch-note" style={{ top: 574 }}>
           Already have an account? <Link to="/login">Login</Link>
         </p>
         {error && (
-          <p className="status is-error" role="alert" style={{ top: 652 }}>
+          <p className="status is-error" role="alert" style={{ top: 604 }}>
             <span className="bg">{error}</span>
           </p>
         )}

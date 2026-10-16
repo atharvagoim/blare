@@ -52,7 +52,7 @@ describe.skipIf(!enabled)('API (integration)', () => {
   async function signupOwner(email = `owner${++ownerCounter}-${Date.now()}@example.com`) {
     const res = await call('/api/auth/signup', {
       method: 'POST',
-      json: { name: 'Atharva', email, dob: '2000-01-15', password: 'correct-horse', confirmPassword: 'correct-horse' },
+      json: { name: 'Atharva', email, password: 'correct-horse', confirmPassword: 'correct-horse' },
     });
     expect(res.status).toBe(201);
     const cookie = res.headers.get('set-cookie')!.split(';')[0]!;
@@ -246,7 +246,7 @@ describe.skipIf(!enabled)('API (integration)', () => {
     const email = `atharva-${Date.now()}@Example.com`;
     const bad = await call('/api/auth/signup', {
       method: 'POST',
-      json: { name: 'A', email, dob: '2000-01-15', password: 'correct-horse', confirmPassword: 'different' },
+      json: { name: 'A', email, password: 'correct-horse', confirmPassword: 'different' },
     });
     expect(bad.status).toBe(400);
     expect(bad.body.error.message).toBe('Passwords do not match.');
@@ -258,7 +258,7 @@ describe.skipIf(!enabled)('API (integration)', () => {
 
     const dup = await call('/api/auth/signup', {
       method: 'POST',
-      json: { name: 'A', email, dob: '2000-01-15', password: 'correct-horse', confirmPassword: 'correct-horse' },
+      json: { name: 'A', email, password: 'correct-horse', confirmPassword: 'correct-horse' },
     });
     expect(dup.status).toBe(409);
 

@@ -78,7 +78,6 @@ export function publicUser(u: UserDoc) {
 export interface SignupInput {
   name: string;
   email: string;
-  dob: string;
   password: string;
 }
 
@@ -93,7 +92,6 @@ export async function signup(input: SignupInput, ipHash: string): Promise<UserDo
     _id: randomId(),
     name: input.name.trim(),
     email,
-    dob: new Date(`${input.dob}T00:00:00Z`),
     passwordHash: await hashPassword(input.password),
   };
   try {
