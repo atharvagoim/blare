@@ -491,3 +491,56 @@ textarea {
   font-size: 11px;
   color: #7a7a7a;
 }
+
+/* ---------- Top nav (account links, top right) ---------- */
+
+.top-nav {
+  position: absolute;
+  z-index: 5;
+  right: calc(13px * var(--s));
+  top: calc(6px * var(--s));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--alkalami);
+  font-size: 14px;
+  animation: rise-in 600ms var(--ease-out) 150ms both;
+}
+
+.nav-link {
+  padding: 5px 14px;
+  border: 2px solid var(--black);
+  border-radius: 30px;
+  background: var(--white);
+  color: var(--black);
+  text-decoration: none;
+  font: inherit;
+  line-height: normal;
+  cursor: pointer;
+  transition: transform 250ms var(--ease-spring), background 200ms, color 200ms;
+}
+
+.nav-link:hover {
+  transform: translateY(-2px);
+  background: var(--black);
+  color: var(--white);
+}
+
+.nav-cta,
+.nav-link.active {
+  background: var(--black);
+  color: var(--white);
+}
+
+.nav-cta:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+.nav-user {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--placeholder);
+}

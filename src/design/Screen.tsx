@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { cactus, menuIcon, sunflower } from './assets';
 
@@ -10,6 +10,7 @@ export function Screen({ decor, children, label }: { decor: Decor[]; children: R
     <>
     <div className="screen">
       <Menu />
+      <TopNav />
       <main className="canvas-wrap" aria-label={label}>
         <div className="canvas">{children}</div>
       </main>
@@ -39,6 +40,41 @@ function Footer() {
       </div>
       <p className="footer-copy">&copy; {new Date().getFullYear()} Blare. All rights reserved.</p>
     </footer>
+  );
+}
+
+/** Always-visible account links, top right: Login / Sign up, or the user's name and Log out. */
+function TopNav() {
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
+  if (loading) return null;
+  return (
+    <nav className="top-nav" aria-label="Account">
+      {user ? (
+        <>
+          <span className="nav-user">{user.name}</span>
+          <button
+            type="button"
+            className="nav-link"
+            onClick={async () => {
+              await logout();
+              navigate('/');
+            }}
+          >
+            Log out
+          </button>
+        </>
+      ) : (
+        <>
+          <NavLink to="/login" className="nav-link">
+            Login
+          </NavLink>
+          <NavLink to="/signup" className="nav-link nav-cta">
+            Sign up
+          </NavLink>
+        </>
+      )}
+    </nav>
   );
 }
 

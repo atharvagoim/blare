@@ -8,12 +8,22 @@ const { Schema, model, models } = mongoose;
 
 const globalCache = globalThis as unknown as { __vanishMongo?: Promise<typeof mongoose> };
 
+/**
+ * A URI without a database name makes MongoDB fall back to "test", which on a shared Atlas cluster
+ * is where other projects' collections (including their own `users`) live. Always use our own database.
+ */
+export function databaseName(uri: string): string {
+  const path = /^mongodb(?:\+srv)?:\/\/[^/?]+\/([^?]*)/.exec(uri)?.[1];
+  return path ? decodeURIComponent(path) : 'vanish';
+}
+
 export async function connectDb(): Promise<typeof mongoose> {
   if (mongoose.connection.readyState === 1) return mongoose;
   if (!globalCache.__vanishMongo) {
     mongoose.set('strictQuery', true);
     globalCache.__vanishMongo = mongoose
       .connect(env().MONGODB_URI, {
+        dbName: databaseName(env().MONGODB_URI),
         // M0 allows 500 connections in total; keep each function instance small.
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 8000,
