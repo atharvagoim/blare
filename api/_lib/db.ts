@@ -63,8 +63,12 @@ const shareSchema = new Schema(
     textCiphertext: { type: String },
     textLength: { type: Number },
 
+    /** Private shares: keyed hash of the 4-digit PIN the sender chose, and how many wrong guesses were made. */
+    pinHash: { type: String },
+    pinAttempts: { type: Number, default: 0 },
+
     manageTokenHash: { type: String, required: true },
-    /** Account that created the share. Required for private shares: only this account can open them. */
+    /** Account that created the share, if they were logged in. Owners open their own private shares without the PIN. */
     ownerId: { type: String },
     creatorIpHash: { type: String, required: true },
     ttlSeconds: { type: Number, required: true },
@@ -79,18 +83,6 @@ const shareSchema = new Schema(
 );
 shareSchema.index({ expiresAt: 1 });
 shareSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
-
-const otpSchema = new Schema(
-  {
-    _id: { type: String, required: true }, // share id — one live code per private share
-    shareId: { type: String, required: true },
-    codeHash: { type: String, required: true },
-    attempts: { type: Number, default: 0 },
-    expiresAt: { type: Date, required: true },
-  },
-  { versionKey: false },
-);
-otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const userSchema = new Schema(
   {
@@ -114,11 +106,9 @@ const rateLimitSchema = new Schema(
 rateLimitSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export type ShareDoc = InferSchemaType<typeof shareSchema> & { _id: string; createdAt: Date };
-export type OtpDoc = InferSchemaType<typeof otpSchema> & { _id: string };
 export type UserDoc = InferSchemaType<typeof userSchema> & { _id: string };
 
 export const Share = (models.Share as Model<ShareDoc>) ?? model<ShareDoc>('Share', shareSchema);
-export const Otp = (models.Otp as Model<OtpDoc>) ?? model<OtpDoc>('Otp', otpSchema);
 export const User = (models.User as Model<UserDoc>) ?? model<UserDoc>('User', userSchema);
 export const RateLimit =
   (models.RateLimit as Model<{ _id: string; count: number; expiresAt: Date }>) ??
@@ -129,6 +119,6 @@ let indexesEnsured = false;
 export async function ensureIndexes(): Promise<void> {
   if (indexesEnsured) return;
   await connectDb();
-  await Promise.all([Share.createIndexes(), Otp.createIndexes(), User.createIndexes(), RateLimit.createIndexes()]);
+  await Promise.all([Share.createIndexes(), User.createIndexes(), RateLimit.createIndexes()]);
   indexesEnsured = true;
 }

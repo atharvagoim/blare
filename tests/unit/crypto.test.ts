@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   decryptText,
   encryptText,
-  generateOtp,
-  hashOtp,
+  hashPin,
   randomId,
   randomSecret,
   safeEqual,
@@ -42,12 +41,11 @@ describe('text encryption', () => {
   });
 });
 
-describe('otp', () => {
-  it('generates 6 digits', () => {
-    for (let i = 0; i < 200; i++) expect(generateOtp()).toMatch(/^\d{6}$/);
-  });
-  it('hashes are scoped', () => {
-    expect(hashOtp(SECRET, 'a', '123456')).not.toBe(hashOtp(SECRET, 'b', '123456'));
+describe('pin', () => {
+  it('hashes are scoped to the share', () => {
+    expect(hashPin(SECRET, 'a', '1234')).not.toBe(hashPin(SECRET, 'b', '1234'));
+    expect(hashPin(SECRET, 'a', '1234')).toBe(hashPin(SECRET, 'a', '1234'));
+    expect(hashPin(SECRET, 'a', '1234')).not.toBe(hashPin(SECRET, 'a', '1235'));
   });
 });
 

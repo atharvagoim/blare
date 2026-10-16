@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createShareSchema, loginSchema, sanitizeFileName, signupSchema, verifyOtpSchema } from '../../api/_lib/validation.js';
+import { createShareSchema, liveSharesSchema, loginSchema, sanitizeFileName, signupSchema, verifyPinSchema } from '../../api/_lib/validation.js';
 import { MAX_FILE_BYTES, classifyFileName } from '../../shared/limits.js';
 
 describe('createShareSchema', () => {
@@ -30,16 +30,26 @@ describe('createShareSchema', () => {
     expect(createShareSchema.safeParse({ type: 'file', file: { ...big, size: 100 * 1024 * 1024 }, ttlSeconds: 60 * 60 }).success).toBe(true);
   });
   it('accepts private shares without any recipient list', () => {
-    expect(createShareSchema.parse({ type: 'text', text: 'x', visibility: 'private' }).visibility).toBe('private');
-    expect(createShareSchema.safeParse({ type: 'text', text: 'x', visibility: 'secret' }).success).toBe(false);
+    expect(createShareSchema.parse({ type: 'text', text: 'x', visibility: 'private', pin: '1234' }).visibility).toBe('private');
+    expect(createShareSchema.safeParse({ type: 'text', text: 'x', visibility: 'secret', pin: '1234' }).success).toBe(false);
   });
 });
 
-describe('verifyOtpSchema', () => {
-  it('accepts exactly six digits', () => {
-    expect(verifyOtpSchema.safeParse({ code: '012345' }).success).toBe(true);
-    expect(verifyOtpSchema.safeParse({ code: '12345' }).success).toBe(false);
-    expect(verifyOtpSchema.safeParse({ code: '12345a' }).success).toBe(false);
+describe('verifyPinSchema', () => {
+  it('accepts exactly four digits', () => {
+    expect(verifyPinSchema.safeParse({ pin: '0123' }).success).toBe(true);
+    expect(verifyPinSchema.safeParse({ pin: '123' }).success).toBe(false);
+    expect(verifyPinSchema.safeParse({ pin: '12345' }).success).toBe(false);
+    expect(verifyPinSchema.safeParse({ pin: '12a4' }).success).toBe(false);
+  });
+});
+
+describe('private shares', () => {
+  it('need a 4-digit PIN chosen by the sender', () => {
+    expect(createShareSchema.safeParse({ type: 'text', text: 'x', visibility: 'private' }).success).toBe(false);
+    expect(createShareSchema.safeParse({ type: 'text', text: 'x', visibility: 'private', pin: '12' }).success).toBe(false);
+    expect(createShareSchema.safeParse({ type: 'text', text: 'x', visibility: 'private', pin: '4821' }).success).toBe(true);
+    expect(createShareSchema.safeParse({ type: 'text', text: 'x', visibility: 'public' }).success).toBe(true);
   });
 });
 
@@ -83,5 +93,17 @@ describe('signupSchema', () => {
   it('login needs an email and a password', () => {
     expect(loginSchema.safeParse({ email: 'a@b.co', password: 'x' }).success).toBe(true);
     expect(loginSchema.safeParse({ email: 'a@b.co', password: '' }).success).toBe(false);
+  });
+});
+
+describe('liveSharesSchema', () => {
+  const id = 'A'.repeat(22);
+  it('accepts a list of id + manage token pairs, or nothing', () => {
+    expect(liveSharesSchema.parse({}).items).toEqual([]);
+    expect(liveSharesSchema.safeParse({ items: [{ id, manageToken: 'tok' }] }).success).toBe(true);
+  });
+  it('rejects malformed ids and oversized lists', () => {
+    expect(liveSharesSchema.safeParse({ items: [{ id: 'short', manageToken: 'tok' }] }).success).toBe(false);
+    expect(liveSharesSchema.safeParse({ items: Array.from({ length: 51 }, () => ({ id, manageToken: 'tok' })) }).success).toBe(false);
   });
 });

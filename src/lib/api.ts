@@ -2,6 +2,7 @@ import type {
   ApiErrorBody,
   CompleteShareResponse,
   CreateShareResponse,
+  LiveSharesResponse,
   LockedShareView,
   ShareView,
 } from '../../shared/limits';
@@ -42,6 +43,8 @@ export interface CreateShareInput {
   file?: { name: string; size: number; mime: string };
   ttlSeconds: number;
   visibility: 'public' | 'private';
+  /** Required for private links: the 4 digits the recipient must enter. */
+  pin?: string;
   turnstileToken?: string;
 }
 
@@ -65,7 +68,7 @@ export const api = {
       method: 'POST',
       headers: { 'X-Manage-Token': manageToken },
     }),
-  /** Sends the creator's manage token when this browser has one, so the owner skips the code. */
+  /** Sends the creator's manage token when this browser has one, so the owner skips the PIN. */
   getShare: (id: string, manageToken?: string | null) =>
     request<ShareView | LockedShareView>(`/api/shares/${encodeURIComponent(id)}`, {
       headers: manageToken ? { 'X-Manage-Token': manageToken } : {},
@@ -75,15 +78,13 @@ export const api = {
       method: 'DELETE',
       headers: { 'X-Manage-Token': manageToken },
     }),
-  requestOtp: (id: string) =>
-    request<{ message: string; cooldownSeconds: number }>(`/api/shares/${encodeURIComponent(id)}/otp`, {
-      method: 'POST',
-      body: '{}',
-    }),
-  verifyOtp: (id: string, code: string) =>
+  /** Links this browser (manage tokens) and the logged-in account can still manage. */
+  liveShares: (items: Array<{ id: string; manageToken: string }>) =>
+    request<LiveSharesResponse>('/api/shares/live', { method: 'POST', body: JSON.stringify({ items }) }),
+  verifyPin: (id: string, pin: string) =>
     request<{ ok: true }>(`/api/shares/${encodeURIComponent(id)}/verify`, {
       method: 'POST',
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ pin }),
     }),
 };
 

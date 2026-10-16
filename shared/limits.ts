@@ -21,10 +21,10 @@ export const ALLOWED_EXPIRY_SECONDS: readonly number[] = EXPIRY_OPTIONS.map((o) 
 /** How long a browser has to finish its direct-to-storage upload before the pending share is purged. */
 export const UPLOAD_WINDOW_SECONDS = 30 * 60;
 
-export const OTP_LENGTH = 6;
-export const OTP_TTL_SECONDS = 5 * 60;
-export const OTP_RESEND_COOLDOWN_SECONDS = 60;
-export const OTP_MAX_ATTEMPTS = 5;
+/** Private links are opened with a PIN the sender chooses. */
+export const PIN_LENGTH = 4;
+/** Wrong guesses allowed per private link before it locks for everyone but the sender. */
+export const PIN_MAX_ATTEMPTS = 5;
 
 export type ShareKind = 'text' | 'image' | 'audio' | 'zip';
 export type FileKind = Exclude<ShareKind, 'text'>;
@@ -112,6 +112,24 @@ export interface LockedShareView {
   locked: true;
   kind: ShareKind;
   expiresAt: string;
+  serverTime: string;
+}
+
+/** One row of the "Live links" page. */
+export interface LiveShare {
+  id: string;
+  kind: ShareKind;
+  visibility: 'public' | 'private';
+  createdAt: string;
+  expiresAt: string;
+  fileName?: string;
+  size?: number;
+  /** True when the caller may delete it (always the case for rows returned here). */
+  canDelete: boolean;
+}
+
+export interface LiveSharesResponse {
+  shares: LiveShare[];
   serverTime: string;
 }
 

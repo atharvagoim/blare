@@ -492,55 +492,183 @@ textarea {
   color: #7a7a7a;
 }
 
-/* ---------- Top nav (account links, top right) ---------- */
+/* Sender's PIN, inside the Private row on the create screen */
+.pin-field {
+  position: absolute;
+  animation: status-pop 350ms var(--ease-spring) both;
+}
 
-.top-nav {
+.pin-field input {
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--black);
+  border-radius: 20px;
+  background: var(--white);
+  outline: none;
+  text-align: center;
+  font-family: var(--inter);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--black);
+}
+
+.pin-field input::placeholder {
+  letter-spacing: 0;
+  color: var(--placeholder);
+}
+
+.pin-field input:focus {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ---------- Top-right action button (e.g. "Live links" on the create page) ---------- */
+
+.top-action {
   position: absolute;
   z-index: 5;
   right: calc(13px * var(--s));
   top: calc(6px * var(--s));
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--alkalami);
-  font-size: 14px;
   animation: rise-in 600ms var(--ease-out) 150ms both;
 }
 
-.nav-link {
-  padding: 5px 14px;
+.top-btn {
+  display: inline-block;
+  padding: 5px 16px;
   border: 2px solid var(--black);
   border-radius: 30px;
   background: var(--white);
   color: var(--black);
-  text-decoration: none;
-  font: inherit;
+  font-family: var(--alkalami);
+  font-size: 14px;
   line-height: normal;
-  cursor: pointer;
+  text-decoration: none;
   transition: transform 250ms var(--ease-spring), background 200ms, color 200ms;
 }
 
-.nav-link:hover {
+.top-btn:hover {
   transform: translateY(-2px);
   background: var(--black);
   color: var(--white);
 }
 
-.nav-cta,
-.nav-link.active {
+/* ---------- Live links page ---------- */
+
+.live-list {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-family: var(--alkalami);
+}
+
+.live-empty {
+  margin: 0;
+  padding: 150px 20px 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--drop-sub);
+}
+
+.live-empty.is-error {
+  color: var(--red);
+}
+
+.live-empty a,
+.live-empty button {
+  color: var(--black);
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.live-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 12px 6px;
+  border-bottom: 1px solid #e6e6e6;
+  animation: status-pop 400ms var(--ease-spring) both;
+}
+
+.live-row:last-child {
+  border-bottom: 0;
+}
+
+.live-main {
+  display: grid;
+  min-width: 0;
+}
+
+.live-name {
+  font-size: 16px;
+  color: var(--black);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-meta {
+  font-family: var(--inter);
+  font-size: 12px;
+  color: var(--drop-sub);
+}
+
+.live-time {
+  font-family: var(--inter);
+  font-weight: 500;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--black);
+}
+
+.live-time.is-low {
+  color: var(--red);
+}
+
+.live-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.live-btn {
+  padding: 4px 14px;
+  border: 2px solid var(--black);
+  border-radius: 30px;
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--alkalami);
+  font-size: 13px;
+  line-height: normal;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 200ms var(--ease-spring), background 200ms, color 200ms;
+}
+
+.live-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
   background: var(--black);
   color: var(--white);
 }
 
-.nav-cta:hover {
-  background: var(--white);
-  color: var(--black);
+.live-btn.is-danger {
+  border-color: var(--red);
+  color: var(--red);
 }
 
-.nav-user {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--placeholder);
+.live-btn.is-danger:hover:not(:disabled) {
+  background: var(--red);
+  color: var(--white);
+}
+
+.live-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }

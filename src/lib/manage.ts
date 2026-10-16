@@ -57,3 +57,22 @@ export function pruneManageTokens() {
     /* ignore */
   }
 }
+
+/** Every unexpired manage token this browser holds, so the Live links page can find its links. */
+export function listManageTokens(): Array<{ id: string; manageToken: string }> {
+  const s = storage();
+  const out: Array<{ id: string; manageToken: string }> = [];
+  if (!s) return out;
+  try {
+    for (let i = 0; i < s.length; i++) {
+      const key = s.key(i);
+      if (!key?.startsWith(PREFIX)) continue;
+      const id = key.slice(PREFIX.length);
+      const manageToken = getManageToken(id);
+      if (manageToken) out.push({ id, manageToken });
+    }
+  } catch {
+    /* ignore */
+  }
+  return out.slice(0, 50);
+}

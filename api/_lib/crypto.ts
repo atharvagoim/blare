@@ -5,10 +5,8 @@ import {
   createHmac,
   hkdfSync,
   randomBytes,
-  randomInt,
   timingSafeEqual,
 } from 'node:crypto';
-import { OTP_LENGTH } from '../../shared/limits.js';
 
 /** 128-bit URL-safe random id (22 chars). */
 export function randomId(): string {
@@ -42,12 +40,8 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ab, bb);
 }
 
-export function generateOtp(): string {
-  return randomInt(0, 10 ** OTP_LENGTH).toString().padStart(OTP_LENGTH, '0');
-}
-
-export function hashOtp(secret: string, scope: string, code: string): string {
-  return hmac(secret, 'otp', `${scope}:${code}`);
+export function hashPin(secret: string, shareId: string, pin: string): string {
+  return hmac(secret, 'pin', `${shareId}:${pin}`);
 }
 
 // ---- Text encryption at rest (AES-256-GCM) ----

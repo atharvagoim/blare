@@ -1,6 +1,6 @@
 # share
 
-Self-destructing file and text sharing. Share text, images, audio or ZIP files (up to 500 MB; files over 100 MB last at most 15 minutes) through a link and QR code. Every share expires — 5 minutes by default, or 10 min, 15 min, 1 hour or 24 hours — and is refused by the server the instant it does. Accounts are optional: anyone can make a **Public** link without logging in. A **Private** link needs you logged in, and only your account can open it. On any other device it shows the "Private file !" screen and opens after a PIN that is emailed to your account address.
+Self-destructing file and text sharing. Share text, images, audio or ZIP files (up to 500 MB; files over 100 MB last at most 15 minutes) through a link. Every share expires — 5 minutes by default, or 10 min, 15 min, 1 hour or 24 hours — and is refused by the server the instant it does. Accounts are optional: anyone can make a **Public** link without logging in. A **Private** link is protected by a 4-digit PIN that the sender chooses; the receiver enters it on the "Private file !" screen.
 
 The UI is a 1:1 build of the Figma file `MDo67DCGsoi9ugHsKoOB3a` (8 frames, 402 × 874). See [Design](#design).
 
@@ -33,7 +33,7 @@ Viewer  ──GET /api/shares/:id───────────▶ Vercel fun
 | Size abuse | `Content-Type` and `Content-Length` are signed into the presigned PUT, so R2 rejects any other size/type. The server re-checks the stored size before accepting. |
 | Upload abuse | Per-IP rate limits (MongoDB-backed, shared across instances), a per-IP daily byte quota (default 1 GB), a global storage cap (default 8 GB, under R2's 10 GB free tier), and optional Cloudflare Turnstile. |
 | Accounts | Passwords hashed with scrypt (N=2¹⁵, random salt). Sessions are HMAC-signed `HttpOnly`, `SameSite=Lax`, `Secure` cookies scoped to `/api`, valid 30 days. Login is rate limited per IP and per email, and unknown emails take as long as wrong passwords (no account enumeration). |
-| Private shares | Locked to the owner account that created them. The owner's session, or the creating browser's 256-bit manage token, opens them directly. Anyone else must enter a 6-digit PIN, which is always emailed to the owner's account address. The client can't choose the recipient, and the address is never shown. PINs are hashed, expire in 5 minutes, allow 5 attempts, are single-use, have a 60-second resend cooldown and are capped at 6 per share per hour (so a leaked link can't flood your inbox). Success sets an `HttpOnly`, `SameSite=Lax`, `Secure` cookie scoped to `/api` and that one share, expiring with the share. Locked responses never include content or download URLs. |
+| Private shares | The sender chooses a 4-digit PIN when creating the link (no account needed). Only a keyed hash of it is stored. The creating browser (256-bit manage token) and the owner account, if the sender was logged in, open the link without it; everyone else must enter the PIN. A 4-digit PIN has only 10,000 values, so the server counts every wrong guess atomically and **locks the link after 5**, plus a per-IP limit. Access is then an `HttpOnly` cookie scoped to that one share. |
 | Data at rest | Text shares are encrypted with AES-256-GCM (bound to the share ID). IPs are stored only as keyed hashes. R2 bucket is private — no public access. |
 | Secrets | All secrets are server-only env vars. Only `VITE_TURNSTILE_SITE_KEY` (public by design) reaches the browser. |
 | Web hardening | Strict CSP, `X-Frame-Options: DENY`, HSTS, `no-referrer`, `no-store` on API responses, Origin check on state-changing requests, cron protected by `CRON_SECRET`. |
@@ -46,8 +46,7 @@ Viewer  ──GET /api/shares/:id───────────▶ Vercel fun
 | `POST` | `/api/shares/:id/complete` | Header `X-Manage-Token`. Validates the uploaded object and starts the timer. |
 | `GET` | `/api/shares/:id` | View. Private shares return `{locked:true}` unless the caller is the owner (session), the creating browser (`X-Manage-Token`), or has entered the PIN. Includes `canDelete`. `404` unknown, `410` expired or deleted. |
 | `DELETE` | `/api/shares/:id` | Creating browser (`X-Manage-Token`) or owner session. Deletes immediately. |
-| `POST` | `/api/shares/:id/otp` | No body. Emails a PIN to the owner account. |
-| `POST` | `/api/shares/:id/verify` | `{code}`: the PIN. Sets a per-share access cookie. |
+| `POST` | `/api/shares/:id/verify` | `{pin}`: the 4-digit PIN. Sets a per-share access cookie. Locks after 5 wrong tries. |
 | `POST` | `/api/auth/signup` | `{name, email, password, confirmPassword}`. Creates the account and logs in. |
 | `POST` | `/api/auth/login` | `{email, password}`. |
 | `POST` | `/api/auth/logout` | Clears the session. |
@@ -69,7 +68,6 @@ api/                 Vercel functions (one file = one function; 8 total, Hobby a
     shares.ts        Create / complete / view / delete / OTP / cleanup logic
     crypto.ts        IDs, HMAC, AES-GCM, access tokens
     rateLimit.ts     Fixed-window counters in MongoDB
-    email.ts         Resend (HTTPS) or SMTP
 shared/limits.ts     Limits, allowed types and API types used by both sides
 src/
   design/            Figma canvas, primitives, menu, assets map
@@ -85,7 +83,7 @@ infra/r2-cors.json   CORS policy for the bucket
 
 ## Deployment (step by step)
 
-You need free accounts on GitHub, Vercel, MongoDB Atlas and Cloudflare, plus an email sender (Resend or a Gmail app password).
+You need free accounts on GitHub, Vercel, MongoDB Atlas and Cloudflare,.
 
 ### 1. Push to GitHub
 
@@ -113,20 +111,11 @@ git push -u origin main
 
 The `R2_*` variable names are historical; any S3-compatible store works. For Cloudflare R2 instead, set `R2_ACCOUNT_ID` and omit `R2_ENDPOINT`.
 
-### 4. Email for Private-file PINs
-
-PINs go to the email address of the account that owns the private file. Pick a sender:
-
-- **Gmail SMTP** (works for any recipient, no domain needed): enable 2-step verification, create an app password, then set `EMAIL_PROVIDER=smtp`, `SMTP_URL=smtps://you%40gmail.com:APPPASSWORD@smtp.gmail.com:465`, `EMAIL_FROM="share <you@gmail.com>"`.
-- **Resend**: create an API key and verify a domain you own, then set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM="share <pin@yourdomain.com>"`. Without a verified domain, Resend only delivers to your own Resend sign-up address. That's fine if you're the only account holder, but other users won't receive PINs.
-
-Public shares, sign-up and login work without email. Only the PIN step needs it.
-
-### 5. (Optional) Cloudflare Turnstile
+### 4. (Optional) Cloudflare Turnstile
 
 Turnstile → add a site with your domain → copy the site key to `VITE_TURNSTILE_SITE_KEY` and the secret to `TURNSTILE_SECRET_KEY`. When the secret is set, every new share requires the widget.
 
-### 6. Vercel
+### 5. Vercel
 
 1. **Add New → Project** → import the GitHub repo. Framework preset **Vite** is detected; `vercel.json` sets the build command and output.
 2. **Settings → Environment Variables** → add everything from `.env.example`:
@@ -134,7 +123,7 @@ Turnstile → add a site with your domain → copy the site key to `VITE_TURNSTI
    - `APP_SECRET` — `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
    - `CRON_SECRET` — another random value (Vercel Cron sends it automatically as a Bearer token)
    - `APP_ORIGIN` — `https://your-project.vercel.app`
-   - the email variables from step 4, Turnstile variables from step 5
+   - Turnstile variables from step 4
 3. **Deploy.**
 4. Create the indexes once (TTL indexes included) from your machine:
    ```bash
@@ -186,14 +175,13 @@ The included GitHub Actions workflow runs all of this on every push.
 | **Vercel Hobby** | Non-commercial use only. Cron jobs run **at most once per day** with ±1 hour timing. 4.5 MB request body limit. 12 functions per deployment. | Daily cron is fine: expiry is enforced per request, and opportunistic sweeps clean up between runs. Files never go through Vercel, so the body limit doesn't apply. A commercial product needs Vercel Pro. |
 | **Cloudflare R2** | 10 GB-month storage, 1M Class A (write/list) and 10M Class B (read) operations per month, free egress. | The 8 GB `STORAGE_CAP_BYTES` keeps you under 10 GB. Each file share costs ~2 Class A (PUT, delete) and ~3 Class B ops. Lifecycle rules work in whole days, which is why it's a backstop and not the main cleanup. |
 | **MongoDB Atlas M0** | 512 MB storage, shared CPU, ~500 connections, ~100 ops/sec. | Records are tiny and short-lived. TTL monitor runs every ~60 s (backstop only). Heavy traffic would need a paid tier. |
-| **Resend free** | 3,000 emails/month, 100/day. Without a verified domain it only emails your own sign-up address. | Use Gmail SMTP (~500/day) if other people will have accounts. |
 | **Turnstile** | Free, unlimited. | — |
 
 Other limits worth knowing:
 
 - **Presigned URLs can't be revoked early.** A download URL is valid for at most `min(remaining lifetime, 5 min)`, so it always dies at expiry — but "Delete now" can leave an already-issued URL working until that moment (the object itself is deleted immediately, so in practice R2 then returns 404).
 - **Long-lived shares:** preview URLs for audio/images last 5 minutes. If someone leaves an audio file paused longer than that on a 1-hour share, reload the page to resume. Downloads always fetch a fresh URL.
-- **Private files on another device** open either by logging in there or by entering the PIN from your inbox.
+- **Private links** open with the PIN the sender chose; share the PIN separately from the link.
 - **IP-based limits** treat everyone behind one NAT (offices, campuses, mobile carriers) as one user.
 - **Public links made while logged out** can be deleted early only from the browser that created them (the delete token lives in that browser). Logged-in owners can delete their links from any device.
 - **No password reset yet.** Accounts have no "forgot password" flow because the design has none. Add one before inviting other users.

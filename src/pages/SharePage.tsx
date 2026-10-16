@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { OTP_LENGTH, type LockedShareView, type ShareView } from '../../shared/limits';
+import { PIN_LENGTH, type LockedShareView, type ShareView } from '../../shared/limits';
 import { copyIcon, crying, dog, logo, privateImage, shareIcon } from '../design/assets';
 import { Img, Pill, T, type Rect } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, isLocked } from '../lib/api';
 import { forgetManageToken, getManageToken } from '../lib/manage';
-import { useQr } from '../lib/qr';
 
 type State =
   | { name: 'loading' }
@@ -108,33 +107,28 @@ interface Layout {
   download: Rect & { cx: number; label: string };
   share: Rect & { textCx: number; textTop: number; iconLeft: number; iconTop: number };
   del: Rect & { cx: number };
-  qr: Rect;
 }
 
 const LAYOUT_TEXT: Layout = {
-  download: { left: 43, top: 471, width: 148, height: 41, cx: 117, label: 'Download' },
-  share: { left: 43, top: 522, width: 148, height: 39, textCx: 104, textTop: 528, iconLeft: 92, iconTop: 10 },
-  del: { left: 44, top: 570, width: 148, height: 39, cx: 117 },
-  qr: { left: 220, top: 483, width: 122, height: 122 },
+  download: { left: 127, top: 471, width: 148, height: 41, cx: 201, label: 'Download' },
+  share: { left: 127, top: 522, width: 148, height: 39, textCx: 188, textTop: 528, iconLeft: 92, iconTop: 10 },
+  del: { left: 127, top: 570, width: 148, height: 39, cx: 201 },
 };
 
 const LAYOUT_IMAGE: Layout = {
-  download: { left: 46, top: 583, width: 148, height: 41, cx: 120, label: 'Download' },
-  share: { left: 45, top: 634, width: 148, height: 39, textCx: 106, textTop: 640, iconLeft: 92, iconTop: 10 },
-  del: { left: 47, top: 682, width: 148, height: 39, cx: 120 },
-  qr: { left: 220, top: 595, width: 122, height: 122 },
+  download: { left: 127, top: 583, width: 148, height: 41, cx: 201, label: 'Download' },
+  share: { left: 127, top: 634, width: 148, height: 39, textCx: 188, textTop: 640, iconLeft: 92, iconTop: 10 },
+  del: { left: 127, top: 682, width: 148, height: 39, cx: 201 },
 };
 
 const LAYOUT_ZIP: Layout = {
-  download: { left: 96, top: 319, width: 207, height: 41, cx: 199, label: 'Download file' },
-  share: { left: 128, top: 371, width: 148, height: 39, textCx: 189, textTop: 376, iconLeft: 92, iconTop: 9 },
-  del: { left: 126, top: 418, width: 148, height: 39, cx: 199 },
-  qr: { left: 137, top: 480, width: 122, height: 122 },
+  download: { left: 98, top: 319, width: 207, height: 41, cx: 201, label: 'Download file' },
+  share: { left: 127, top: 371, width: 148, height: 39, textCx: 188, textTop: 376, iconLeft: 92, iconTop: 9 },
+  del: { left: 127, top: 418, width: 148, height: 39, cx: 201 },
 };
 
 function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
   const url = `${window.location.origin}/s/${view.id}`;
-  const qr = useQr(url);
   const [shareLabel, setShareLabel] = useState('Share');
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -207,7 +201,7 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
     onGone();
   }
 
-  const statusTop = layout.del.top + layout.del.height + (view.kind === 'zip' ? 140 : 24);
+  const statusTop = layout.del.top + layout.del.height + 24;
 
   return (
     <Screen decor={['cactus', 'sunflower']} label="Shared file">
@@ -305,8 +299,6 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
         <Pill variant="red" rect={layout.del} label={deleting ? 'Deleting…' : 'Delete'} labelTop={6} labelCx={layout.del.cx - layout.del.left} onClick={remove} disabled={deleting} />
       )}
 
-      {qr && <img className="abs" src={qr} alt="QR code for this link" width={122} height={122} style={{ ...layout.qr, imageRendering: 'pixelated' }} />}
-
       {error && (
         <p className="status is-error" role="alert" style={{ top: statusTop }}>
           <span className="bg">{error}</span>
@@ -317,48 +309,30 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Figma "iPhone 17 - 8": Private file !  (PIN emailed to the owner account)
+// Figma "iPhone 17 - 8": Private file !  (PIN chosen by the sender)
 // ---------------------------------------------------------------------------
 
 function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUnlocked: () => Promise<ShareView | LockedShareView | null>; onGone: () => void }) {
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<{ text: string; error?: boolean; resend?: boolean } | null>(null);
-  const sent = useRef(false);
-
-  const sendPin = useCallback(async () => {
-    try {
-      await api.requestOtp(view.id);
-      setStatus({ text: 'We emailed a PIN to the owner of this file.' });
-    } catch (err) {
-      if (err instanceof ApiError && (err.status === 410 || err.status === 404)) return onGone();
-      if (err instanceof ApiError && err.status === 429) return setStatus({ text: 'A PIN was emailed to the owner recently. Check the inbox.' });
-      setStatus({ text: err instanceof Error ? err.message : 'Could not send the PIN.', error: true, resend: true });
-    }
-  }, [view.id, onGone]);
-
-  useEffect(() => {
-    if (sent.current) return;
-    sent.current = true;
-    void sendPin();
-  }, [sendPin]);
+  const [status, setStatus] = useState<{ text: string; error?: boolean } | null>({ text: 'Ask the sender for the PIN.' });
 
   async function submit(e?: FormEvent) {
     e?.preventDefault();
-    if (!new RegExp(`^\\d{${OTP_LENGTH}}$`).test(pin)) return setStatus({ text: `Enter the ${OTP_LENGTH}-digit PIN from the email.`, error: true });
+    if (pin.length !== PIN_LENGTH) return setStatus({ text: `Enter the ${PIN_LENGTH}-digit PIN.`, error: true });
     setBusy(true);
     setStatus(null);
     try {
-      await api.verifyOtp(view.id, pin);
+      await api.verifyPin(view.id, pin);
       const unlocked = await onUnlocked();
       if (unlocked && !isLocked(unlocked) && unlocked.kind !== 'text' && unlocked.downloadUrl) {
         window.location.assign(unlocked.downloadUrl);
       }
     } catch (err) {
       setBusy(false);
+      setPin('');
       if (err instanceof ApiError && (err.status === 410 || err.status === 404)) return onGone();
-      const locked = err instanceof ApiError && err.code === 'otp_locked';
-      setStatus({ text: err instanceof Error ? err.message : 'That PIN is not valid.', error: true, resend: locked });
+      setStatus({ text: err instanceof Error ? err.message : 'That PIN is not right.', error: true });
     }
   }
 
@@ -380,11 +354,12 @@ function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUn
           <input
             id="pin"
             inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={OTP_LENGTH}
+            autoComplete="off"
+            maxLength={PIN_LENGTH}
             placeholder="PIN"
             value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
+            disabled={busy}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
             style={{ textAlign: 'center', fontSize: 20, paddingTop: 8, paddingBottom: 0, paddingLeft: 2, paddingRight: 0, letterSpacing: pin ? '0.18em' : 0 }}
           />
         </div>
@@ -393,21 +368,14 @@ function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUn
           type="submit"
           variant="black"
           rect={{ left: 99, top: 552, width: 207, height: 41 }}
-          label={busy ? 'Checking…' : 'Download file'}
+          label={busy ? 'Checking…' : 'Unlock'}
           labelCx={202 - 99}
           disabled={busy}
         />
 
         {status && (
           <p className={`status ${status.error ? 'is-error' : ''}`} role={status.error ? 'alert' : 'status'} style={{ top: 606 }}>
-            <span className="bg">
-              {status.text}{' '}
-              {status.resend && (
-                <button type="button" onClick={() => void sendPin()}>
-                  Send a new PIN
-                </button>
-              )}
-            </span>
+            <span className="bg">{status.text}</span>
           </p>
         )}
       </form>

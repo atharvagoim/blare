@@ -1,12 +1,12 @@
 import {
   MAX_FILE_BYTES,
-  OTP_MAX_ATTEMPTS,
-  OTP_RESEND_COOLDOWN_SECONDS,
-  OTP_TTL_SECONDS,
+  PIN_MAX_ATTEMPTS,
   UPLOAD_WINDOW_SECONDS,
   classifyFileName,
   type CompleteShareResponse,
   type CreateShareResponse,
+  type LiveShare,
+  type LiveSharesResponse,
   type LockedShareView,
   type ShareView,
 } from '../../shared/limits.js';
@@ -14,8 +14,7 @@ import {
   accessCookieName,
   decryptText,
   encryptText,
-  generateOtp,
-  hashOtp,
+  hashPin,
   randomId,
   randomSecret,
   safeEqual,
@@ -23,8 +22,7 @@ import {
   signAccessToken,
   verifyAccessToken,
 } from './crypto.js';
-import { connectDb, Otp, Share, User, type ShareDoc, type UserDoc } from './db.js';
-import { sendOtpEmail } from './email.js';
+import { connectDb, Share, type ShareDoc } from './db.js';
 import { env } from './env.js';
 import { HttpError, errors } from './http.js';
 import { deleteObjects, headObject, listObjects, presignDownload, presignUpload, readHead } from './r2.js';
@@ -40,9 +38,7 @@ const MAX_DOWNLOAD_URL_SECONDS = 300;
 const LIMITS = {
   createPerIp: { limit: 10, window: 10 * 60 },
   viewPerIp: { limit: 120, window: 60 },
-  otpSendPerIp: { limit: 5, window: 15 * 60 },
-  otpSendPerShare: { limit: 6, window: 60 * 60 },
-  otpVerifyPerIp: { limit: 15, window: 15 * 60 },
+  pinVerifyPerIp: { limit: 15, window: 15 * 60 },
   deletePerIp: { limit: 30, window: 10 * 60 },
 };
 
@@ -67,10 +63,6 @@ export async function createShare(input: CreateShareInput, ctx: RequestContext):
   // Opportunistic cleanup keeps storage tidy between daily cron runs. Never blocks creation.
   await sweepExpired(25, now).catch((err) => console.warn('[sweep] skipped', err));
 
-  if (input.visibility === 'private' && !ctx.userId) {
-    throw new HttpError(401, 'login_required', 'Log in to make a Private link.');
-  }
-
   const id = randomId();
   const manageToken = randomSecret();
 
@@ -79,6 +71,7 @@ export async function createShare(input: CreateShareInput, ctx: RequestContext):
     visibility: input.visibility,
     manageTokenHash: sha256(manageToken),
     ownerId: ctx.userId ?? undefined,
+    pinHash: input.visibility === 'private' ? hashPin(e.APP_SECRET, id, input.pin!) : undefined,
     creatorIpHash: ctx.ipHash,
     ttlSeconds: input.ttlSeconds,
   };
@@ -222,7 +215,7 @@ export async function getShareView(
   const share = await loadLiveShare(id, now);
 
   // The creating browser (manage token) and the owner account open private shares directly;
-  // anyone else needs the PIN emailed to the owner.
+  // anyone else needs the PIN the sender chose.
   const isCreator = !!auth.manageToken && safeEqual(share.manageTokenHash, sha256(auth.manageToken));
   const isOwner = !!ctx.userId && share.ownerId === ctx.userId;
   const hasCookie = verifyAccessToken(e.APP_SECRET, auth.cookies[accessCookieName(id)], id, now.getTime());
@@ -282,72 +275,80 @@ export async function deleteShare(id: string, manageToken: string | undefined, c
 }
 
 // ---------------------------------------------------------------------------
-// Private shares: one-time PIN emailed to the owner account
+// Private shares: a PIN the sender chose when creating the link
 // ---------------------------------------------------------------------------
 
-export async function requestOtp(
-  id: string,
-  shareUrl: string,
-  ctx: RequestContext,
-): Promise<{ message: string; cooldownSeconds: number }> {
+export async function verifyPin(id: string, pin: string, ctx: RequestContext): Promise<{ token: string; maxAge: number }> {
   const e = env();
   const now = ctx.now ?? new Date();
-
-  await enforce('otp-send-ip', ctx.ipHash, LIMITS.otpSendPerIp.limit, LIMITS.otpSendPerIp.window, 'Too many PIN requests. Wait a few minutes.');
-  await enforce('otp-cooldown', id, 1, OTP_RESEND_COOLDOWN_SECONDS, 'Wait a minute before requesting another PIN.');
-
+  await enforce('pin-verify-ip', ctx.ipHash, LIMITS.pinVerifyPerIp.limit, LIMITS.pinVerifyPerIp.window, 'Too many attempts. Wait a few minutes.');
   const share = await loadLiveShare(id, now);
-  if (share.visibility !== 'private') throw errors.badRequest('This share does not need a PIN.', 'not_private');
-  const owner = share.ownerId ? await User.findById(share.ownerId, { email: 1 }).lean<Pick<UserDoc, 'email'>>() : null;
-  if (!owner) throw errors.notFound();
-  // Caps how often a leaked link can be used to email the owner.
-  await enforce('otp-send-share', id, LIMITS.otpSendPerShare.limit, LIMITS.otpSendPerShare.window, 'Too many PINs were requested for this file.');
-
-  const code = generateOtp();
-  const expiresAt = new Date(Math.min(now.getTime() + OTP_TTL_SECONDS * 1000, share.expiresAt.getTime()));
-  await Otp.updateOne(
-    { _id: id },
-    { $set: { shareId: id, codeHash: hashOtp(e.APP_SECRET, id, code), attempts: 0, expiresAt } },
-    { upsert: true },
-  );
-  const minutes = Math.max(1, Math.round((expiresAt.getTime() - now.getTime()) / 60000));
-  try {
-    await sendOtpEmail({ to: owner.email, code, minutes, shareUrl });
-  } catch (err) {
-    await Otp.deleteOne({ _id: id });
-    throw err;
-  }
-  return { message: 'PIN sent to the owner’s email.', cooldownSeconds: OTP_RESEND_COOLDOWN_SECONDS };
-}
-
-export async function verifyOtp(id: string, code: string, ctx: RequestContext): Promise<{ token: string; maxAge: number }> {
-  const e = env();
-  const now = ctx.now ?? new Date();
-  await enforce('otp-verify-ip', ctx.ipHash, LIMITS.otpVerifyPerIp.limit, LIMITS.otpVerifyPerIp.window, 'Too many attempts. Wait a few minutes.');
-  const share = await loadLiveShare(id, now);
-  if (share.visibility !== 'private') throw errors.badRequest('This share does not need a PIN.', 'not_private');
-
-  const invalid = () => errors.badRequest('That PIN is not valid. Check the email and try again.', 'invalid_code');
+  if (share.visibility !== 'private' || !share.pinHash) throw errors.badRequest('This share does not need a PIN.', 'not_private');
 
   // Count the attempt before comparing, atomically, so parallel guesses can't exceed the cap.
-  const otp = await Otp.findOneAndUpdate(
-    { _id: id, expiresAt: { $gt: now }, attempts: { $lt: OTP_MAX_ATTEMPTS } },
-    { $inc: { attempts: 1 } },
-    { returnDocument: 'after', lean: true },
+  // A 4-digit PIN has only 10,000 values, so the cap is what actually protects it.
+  const attempt = await Share.findOneAndUpdate(
+    { _id: id, status: 'ready', pinAttempts: { $lt: PIN_MAX_ATTEMPTS } },
+    { $inc: { pinAttempts: 1 } },
+    { returnDocument: 'after', lean: true, projection: { pinHash: 1, pinAttempts: 1 } },
   );
-  if (!otp) throw invalid();
+  if (!attempt) throw errors.badRequest('Too many wrong PINs. This link is locked; ask the sender for a new link.', 'pin_locked');
 
-  if (!safeEqual(otp.codeHash, hashOtp(e.APP_SECRET, id, code))) {
-    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
-      await Otp.deleteOne({ _id: id });
-      throw errors.badRequest('Too many wrong PINs.', 'otp_locked');
-    }
-    throw invalid();
+  if (!safeEqual(attempt.pinHash ?? '', hashPin(e.APP_SECRET, id, pin))) {
+    const left = PIN_MAX_ATTEMPTS - (attempt.pinAttempts ?? PIN_MAX_ATTEMPTS);
+    throw errors.badRequest(
+      left > 0 ? `That PIN is not right. ${left} ${left === 1 ? 'try' : 'tries'} left.` : 'Too many wrong PINs. This link is locked; ask the sender for a new link.',
+      left > 0 ? 'invalid_pin' : 'pin_locked',
+    );
   }
 
-  await Otp.deleteOne({ _id: id });
+  // Correct PIN: give back the attempts so a few earlier typos don't lock out the real recipient.
+  await Share.updateOne({ _id: id }, { $set: { pinAttempts: 0 } });
   const token = signAccessToken(e.APP_SECRET, id, share.expiresAt);
   return { token, maxAge: (share.expiresAt.getTime() - now.getTime()) / 1000 };
+}
+
+// ---------------------------------------------------------------------------
+// Live links: everything the caller can still manage (their account's, plus this browser's)
+// ---------------------------------------------------------------------------
+
+export async function listLiveShares(
+  items: Array<{ id: string; manageToken: string }>,
+  ctx: RequestContext,
+): Promise<LiveSharesResponse> {
+  const now = ctx.now ?? new Date();
+  await enforce('view', ctx.ipHash, LIMITS.viewPerIp.limit, LIMITS.viewPerIp.window);
+  await connectDb();
+
+  const live = { status: 'ready' as const, expiresAt: { $gt: now } };
+  const projection = { _id: 1, kind: 1, visibility: 1, readyAt: 1, createdAt: 1, expiresAt: 1, fileName: 1, size: 1, manageTokenHash: 1, ownerId: 1 };
+  const [owned, byToken] = await Promise.all([
+    ctx.userId ? Share.find({ ownerId: ctx.userId, ...live }, projection).sort({ expiresAt: 1 }).limit(100).lean<ShareDoc[]>() : [],
+    items.length ? Share.find({ _id: { $in: items.map((i) => i.id) }, ...live }, projection).lean<ShareDoc[]>() : [],
+  ]);
+
+  const tokenById = new Map(items.map((i) => [i.id, i.manageToken]));
+  const mine = new Map<string, ShareDoc>();
+  for (const s of owned) mine.set(s._id, s);
+  for (const s of byToken) {
+    const token = tokenById.get(s._id);
+    if (token && safeEqual(s.manageTokenHash, sha256(token))) mine.set(s._id, s);
+  }
+
+  const shares: LiveShare[] = [...mine.values()]
+    .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
+    .slice(0, 100)
+    .map((s) => ({
+      id: s._id,
+      kind: s.kind,
+      visibility: s.visibility,
+      createdAt: (s.readyAt ?? s.createdAt).toISOString(),
+      expiresAt: s.expiresAt.toISOString(),
+      fileName: s.fileName ?? undefined,
+      size: s.size ?? undefined,
+      canDelete: true,
+    }));
+  return { shares, serverTime: now.toISOString() };
 }
 
 // ---------------------------------------------------------------------------
@@ -378,11 +379,10 @@ export async function purgeShares(shares: Purgeable[], reason: 'expired' | 'dele
           { _id: { $in: live } },
           {
             $set: { status: reason, purgeAt: new Date(now.getTime() + TOMBSTONE_MS) },
-            $unset: { objectKey: 1, fileName: 1, mime: 1, size: 1, textCiphertext: 1, textLength: 1 },
+            $unset: { objectKey: 1, fileName: 1, mime: 1, size: 1, textCiphertext: 1, textLength: 1, pinHash: 1 },
           },
         )
       : null,
-    Otp.deleteMany({ shareId: { $in: ids } }),
   ]);
   return ids.length;
 }

@@ -3,7 +3,7 @@ import { disconnectDb, ensureIndexes } from '../api/_lib/db.js';
 
 ensureIndexes()
   .then(async () => {
-    console.log('Indexes are in place: shares, otps, ratelimits (TTL indexes included).');
+    console.log('Indexes are in place: users, shares, ratelimits (TTL indexes included).');
     await disconnectDb();
   })
   .catch(async (err) => {

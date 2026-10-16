@@ -9,8 +9,8 @@
   "crons": [{ "path": "/api/cron/cleanup", "schedule": "17 3 * * *" }],
   "rewrites": [
     { "source": "/api/auth/:action", "destination": "/api/auth?action=:action" },
+    { "source": "/api/shares/live", "destination": "/api/share-live" },
     { "source": "/api/shares/:id/complete", "destination": "/api/share-complete?id=:id" },
-    { "source": "/api/shares/:id/otp", "destination": "/api/share-otp?id=:id" },
     { "source": "/api/shares/:id/verify", "destination": "/api/share-verify?id=:id" },
     { "source": "/api/shares/:id", "destination": "/api/share?id=:id" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }

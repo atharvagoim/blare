@@ -1,27 +1,26 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ACCEPT_ATTRIBUTE, DEFAULT_EXPIRY_SECONDS, EXPIRY_OPTIONS, LARGE_FILE_BYTES, LARGE_FILE_MAX_TTL_SECONDS, MAX_FILE_BYTES, MAX_TEXT_CHARS, classifyFileName } from '../../shared/limits';
+import { ACCEPT_ATTRIBUTE, DEFAULT_EXPIRY_SECONDS, EXPIRY_OPTIONS, LARGE_FILE_BYTES, LARGE_FILE_MAX_TTL_SECONDS, MAX_FILE_BYTES, MAX_TEXT_CHARS, PIN_LENGTH, classifyFileName } from '../../shared/limits';
 import { TURNSTILE_SITE_KEY, Turnstile } from '../components/Turnstile';
 import { logo, radioOff, radioOn, selectFrame } from '../design/assets';
 import { Img, Pill, T } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, uploadToStorage } from '../lib/api';
-import { useAuth } from '../lib/auth';
 import { formatBytes } from '../lib/format';
 import { saveManageToken } from '../lib/manage';
 
 type Mode = 'file' | 'text';
-type Status = { kind: 'error'; message: string; loginLink?: boolean } | null;
+type Status = { kind: 'error'; message: string } | null;
 
 // Figma frame "iPhone 17 - 1"
 export function CreatePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [mode, setMode] = useState<Mode>('file');
   const [file, setFile] = useState<File | null>(null);
   const [text, setText] = useState('');
   const [ttl, setTtl] = useState<number>(DEFAULT_EXPIRY_SECONDS);
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
+  const [pin, setPin] = useState('');
   const [status, setStatus] = useState<Status>(null);
   const [busy, setBusy] = useState<null | { label: string; progress?: number }>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -58,7 +57,7 @@ export function CreatePage() {
     setStatus(null);
     if (mode === 'file' && !file) return setStatus({ kind: 'error', message: 'Choose a file to share.' });
     if (mode === 'text' && !text.trim()) return setStatus({ kind: 'error', message: 'Write some text to share.' });
-    if (visibility === 'private' && !user) return setStatus({ kind: 'error', message: 'Log in to make a Private link.', loginLink: true });
+    if (visibility === 'private' && pin.length !== PIN_LENGTH) return setStatus({ kind: 'error', message: `Choose a ${PIN_LENGTH}-digit PIN for the private link.` });
     if (TURNSTILE_SITE_KEY && !turnstileToken) return setStatus({ kind: 'error', message: 'Complete the verification check first.' });
 
     try {
@@ -69,6 +68,7 @@ export function CreatePage() {
         file: mode === 'file' && file ? { name: file.name, size: file.size, mime: file.type } : undefined,
         ttlSeconds: ttl,
         visibility,
+        pin: visibility === 'private' ? pin : undefined,
         turnstileToken,
       });
       let expiresAt = res.expiresAt;
@@ -92,9 +92,6 @@ export function CreatePage() {
       setBusy(null);
       setTurnstileReset((n) => n + 1);
       if (err instanceof ApiError && err.code === 'aborted') return;
-      if (err instanceof ApiError && err.code === 'login_required') {
-        return setStatus({ kind: 'error', message: 'Log in to make a Private link.', loginLink: true });
-      }
       setStatus({ kind: 'error', message: err instanceof Error ? err.message : 'Something went wrong. Please try again.' });
     } finally {
       abortRef.current = null;
@@ -104,7 +101,15 @@ export function CreatePage() {
   const fileKind = file ? classifyFileName(file.name)?.kind : null;
 
   return (
-    <Screen decor={['cactus', 'sunflower']} label="Create a link">
+    <Screen
+      decor={['cactus', 'sunflower']}
+      label="Create a link"
+      topRight={
+        <Link to="/live" className="top-btn">
+          Live links
+        </Link>
+      }
+    >
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 46, top: 66, width: 312, height: 106 }} alt="Blare" />
 
@@ -298,6 +303,23 @@ export function CreatePage() {
                 <T cx={o.cx} top={o.textTop} size={17}>
                   {o.label}
                 </T>
+                {o.value === 'private' && selected && (
+                  <div className="pin-field" style={{ left: 247, top: o.row + 6, width: 126, height: 29 }}>
+                    <label htmlFor="link-pin" className="visually-hidden">
+                      {PIN_LENGTH}-digit PIN for the receiver
+                    </label>
+                    <input
+                      id="link-pin"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={PIN_LENGTH}
+                      placeholder={`${PIN_LENGTH}-digit PIN`}
+                      value={pin}
+                      disabled={!!busy}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
@@ -323,12 +345,7 @@ export function CreatePage() {
         {status && (
           <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: 784 }}>
             <span className="bg">
-              {status.message}{' '}
-              {status.loginLink && (
-                <Link to="/login" state={{ next: '/' }}>
-                  Log in
-                </Link>
-              )}
+              {status.message}
             </span>
           </p>
         )}

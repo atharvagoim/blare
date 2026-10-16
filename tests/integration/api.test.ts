@@ -9,18 +9,11 @@
  * intercepted (we capture the code instead of sending a real email).
  */
 import type { Server } from 'node:http';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const MONGO = process.env.TEST_MONGODB_URI;
 const S3 = process.env.TEST_S3_ENDPOINT;
 const enabled = !!MONGO && !!S3;
-
-const sentEmails: Array<{ to: string; code: string }> = [];
-vi.mock('../../api/_lib/email.js', () => ({
-  sendOtpEmail: async (m: { to: string; code: string }) => {
-    sentEmails.push({ to: m.to, code: m.code });
-  },
-}));
 
 const PNG = new Uint8Array([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00,
@@ -92,7 +85,7 @@ describe.skipIf(!enabled)('API (integration)', () => {
 
     db = await import('../../api/_lib/db.js');
     await db.connectDb();
-    await Promise.all([db.Share.deleteMany({}), db.Otp.deleteMany({}), db.RateLimit.deleteMany({})]);
+    await Promise.all([db.Share.deleteMany({}), db.RateLimit.deleteMany({})]);
 
     const { startDevServer } = await import('../../scripts/dev-server.js');
     server = await startDevServer(0);
@@ -107,7 +100,6 @@ describe.skipIf(!enabled)('API (integration)', () => {
 
   beforeEach(() => {
     ip = `10.0.0.${++ipCounter}`;
-    sentEmails.length = 0;
   });
 
   it('creates, reads and deletes a text share', async () => {
@@ -292,18 +284,21 @@ describe.skipIf(!enabled)('API (integration)', () => {
     expect(statuses[10]).toBe(429);
   });
 
-  it('requires an account to create a private share', async () => {
-    const res = await call('/api/shares', { method: 'POST', json: { type: 'text', text: 'x', visibility: 'private' } });
-    expect(res.status).toBe(401);
-    expect(res.body.error.code).toBe('login_required');
+  it('requires a 4-digit PIN to create a private share, with no account needed', async () => {
+    const none = await call('/api/shares', { method: 'POST', json: { type: 'text', text: 'x', visibility: 'private' } });
+    expect(none.status).toBe(400);
+    const bad = await call('/api/shares', { method: 'POST', json: { type: 'text', text: 'x', visibility: 'private', pin: '12ab' } });
+    expect(bad.status).toBe(400);
+    const ok = await call('/api/shares', { method: 'POST', json: { type: 'text', text: 'x', visibility: 'private', pin: '4821' } });
+    expect(ok.status).toBe(201);
   });
 
-  it('opens private shares only for the owner: their account, their browser, or the emailed PIN', async () => {
-    const { email, session } = await signupOwner();
+  it("opens private shares with the sender's PIN, or for the creator and owner without it", async () => {
+    const { session } = await signupOwner();
     const created = await call('/api/shares', {
       method: 'POST',
       headers: { cookie: session },
-      json: { type: 'text', text: 'just for me', visibility: 'private' },
+      json: { type: 'text', text: 'just for you', visibility: 'private', pin: '4821' },
     });
     expect(created.status).toBe(201);
     const { id, manageToken } = created.body;
@@ -313,34 +308,23 @@ describe.skipIf(!enabled)('API (integration)', () => {
     expect(locked.body).toMatchObject({ locked: true, kind: 'text' });
     expect(locked.body.text).toBeUndefined();
 
-    // The owner's account opens it on any device; so does the creating browser.
-    const asOwner = await call(`/api/shares/${id}`, { headers: { cookie: session } });
-    expect(asOwner.body).toMatchObject({ text: 'just for me', canDelete: true });
-    expect((await call(`/api/shares/${id}`, { headers: { 'x-manage-token': manageToken } })).body.text).toBe('just for me');
+    // The owner's account and the creating browser open it without the PIN.
+    expect((await call(`/api/shares/${id}`, { headers: { cookie: session } })).body).toMatchObject({ text: 'just for you', canDelete: true });
+    expect((await call(`/api/shares/${id}`, { headers: { 'x-manage-token': manageToken } })).body.text).toBe('just for you');
 
     // A different account is still locked out.
     const stranger = await signupOwner();
     expect((await call(`/api/shares/${id}`, { headers: { cookie: stranger.session } })).body.locked).toBe(true);
 
-    // PIN goes to the owner's account email only; the request can't redirect it.
-    const ask = await call(`/api/shares/${id}/otp`, { method: 'POST', json: { email: 'attacker@example.com' } });
-    expect(ask.status).toBe(202);
-    expect(JSON.stringify(ask.body)).not.toContain(email);
-    expect(sentEmails).toEqual([{ to: email, code: expect.stringMatching(/^\d{6}$/) }]);
-    const code = sentEmails[0]!.code;
-    expect((await call(`/api/shares/${id}/otp`, { method: 'POST' })).status).toBe(429); // cooldown
-
-    const bad = await call(`/api/shares/${id}/verify`, { method: 'POST', json: { code: code === '000000' ? '111111' : '000000' } });
-    expect(bad.body.error.code).toBe('invalid_code');
-    const good = await call(`/api/shares/${id}/verify`, { method: 'POST', json: { code } });
+    const bad = await call(`/api/shares/${id}/verify`, { method: 'POST', json: { pin: '0000' } });
+    expect(bad.body.error.code).toBe('invalid_pin');
+    const good = await call(`/api/shares/${id}/verify`, { method: 'POST', json: { pin: '4821' } });
     expect(good.status).toBe(200);
     const access = good.headers.get('set-cookie')!.split(';')[0]!;
-    const view = await call(`/api/shares/${id}`, { headers: { cookie: access } });
-    expect(view.body).toMatchObject({ text: 'just for me', canDelete: false });
+    expect((await call(`/api/shares/${id}`, { headers: { cookie: access } })).body).toMatchObject({ text: 'just for you', canDelete: false });
 
-    // Single-use PIN; access cookie doesn't unlock any other share.
-    expect((await call(`/api/shares/${id}/verify`, { method: 'POST', json: { code } })).status).toBe(400);
-    const other = await call('/api/shares', { method: 'POST', headers: { cookie: session }, json: { type: 'text', text: 'other', visibility: 'private' } });
+    // The access cookie doesn't unlock any other share.
+    const other = await call('/api/shares', { method: 'POST', json: { type: 'text', text: 'other', visibility: 'private', pin: '1111' } });
     const forged = access.replace(id, other.body.id);
     expect((await call(`/api/shares/${other.body.id}`, { headers: { cookie: forged } })).body.locked).toBe(true);
 
@@ -351,11 +335,9 @@ describe.skipIf(!enabled)('API (integration)', () => {
   });
 
   it('keeps private file shares locked, including their download URLs', async () => {
-    const { session } = await signupOwner();
     const created = await call('/api/shares', {
       method: 'POST',
-      headers: { cookie: session },
-      json: { type: 'file', file: { name: 'p.png', size: PNG.length, mime: '' }, visibility: 'private' },
+      json: { type: 'file', file: { name: 'p.png', size: PNG.length, mime: '' }, visibility: 'private', pin: '2468' },
     });
     const { id, manageToken, upload } = created.body;
     await fetch(upload.url, { method: 'PUT', headers: upload.headers, body: PNG });
@@ -366,19 +348,17 @@ describe.skipIf(!enabled)('API (integration)', () => {
     expect(locked.body.previewUrl).toBeUndefined();
   });
 
-  it('locks the PIN after too many wrong guesses', async () => {
-    const { session } = await signupOwner();
-    const created = await call('/api/shares', { method: 'POST', headers: { cookie: session }, json: { type: 'text', text: 'x', visibility: 'private' } });
+  it('locks the link after 5 wrong PIN guesses, even for the right PIN', async () => {
+    const created = await call('/api/shares', { method: 'POST', json: { type: 'text', text: 'x', visibility: 'private', pin: '1234' } });
     const { id } = created.body;
-    await call(`/api/shares/${id}/otp`, { method: 'POST' });
-    const code = sentEmails[0]!.code;
-    const wrong = code === '999999' ? '888888' : '999999';
     const codes = [];
     for (let i = 0; i < 5; i++) {
-      codes.push((await call(`/api/shares/${id}/verify`, { method: 'POST', json: { code: wrong } })).body.error.code);
+      codes.push((await call(`/api/shares/${id}/verify`, { method: 'POST', json: { pin: '9999' } })).body.error.code);
     }
-    expect(codes.at(-1)).toBe('otp_locked');
-    expect((await call(`/api/shares/${id}/verify`, { method: 'POST', json: { code } })).status).toBe(400);
+    expect(codes.at(-1)).toBe('pin_locked');
+    const right = await call(`/api/shares/${id}/verify`, { method: 'POST', json: { pin: '1234' } });
+    expect(right.status).toBe(400);
+    expect(right.body.error.code).toBe('pin_locked');
   });
 
   it('marks public shares deletable only for their creator', async () => {

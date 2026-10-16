@@ -6,8 +6,10 @@ import {
   LARGE_FILE_MAX_TTL_SECONDS,
   MAX_FILE_BYTES,
   MAX_TEXT_CHARS,
-  OTP_LENGTH,
+  PIN_LENGTH,
 } from '../../shared/limits.js';
+
+const PIN_RE = new RegExp('^[0-9]{' + PIN_LENGTH + '}$');
 
 export const createShareSchema = z
   .object({
@@ -30,11 +32,15 @@ export const createShareSchema = z
       .default(DEFAULT_EXPIRY_SECONDS)
       .refine((v) => ALLOWED_EXPIRY_SECONDS.includes(v), 'Choose one of the listed expiry times.'),
     visibility: z.enum(['public', 'private']).default('public'),
+    pin: z.string().regex(PIN_RE, `The PIN must be exactly ${PIN_LENGTH} digits.`).optional(),
     turnstileToken: z.string().max(4096).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.type === 'text' && (!v.text || v.text.trim().length === 0)) {
       ctx.addIssue({ code: 'custom', path: ['text'], message: 'Write some text to share.' });
+    }
+    if (v.visibility === 'private' && !v.pin) {
+      ctx.addIssue({ code: 'custom', path: ['pin'], message: `Choose a ${PIN_LENGTH}-digit PIN for the private link.` });
     }
     if (v.type === 'file' && !v.file) {
       ctx.addIssue({ code: 'custom', path: ['file'], message: 'Choose a file to share.' });
@@ -49,11 +55,18 @@ export const createShareSchema = z
   });
 export type CreateShareInput = z.infer<typeof createShareSchema>;
 
-export const verifyOtpSchema = z.object({
-  code: z
+export const liveSharesSchema = z.object({
+  items: z
+    .array(z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{22}$/), manageToken: z.string().min(1).max(128) }))
+    .max(50)
+    .default([]),
+});
+
+export const verifyPinSchema = z.object({
+  pin: z
     .string()
     .trim()
-    .regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), `Enter the ${OTP_LENGTH}-digit PIN from the email.`),
+    .regex(PIN_RE, `Enter the ${PIN_LENGTH}-digit PIN.`),
 });
 
 /** Strip paths and control characters; keep the extension. */

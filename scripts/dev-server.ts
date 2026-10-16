@@ -9,8 +9,8 @@ type Handler = (req: ApiRequest, res: ApiResponse) => Promise<unknown>;
 
 const routes: Array<{ pattern: RegExp; load: () => Promise<{ default: Handler }>; param?: string }> = [
   { pattern: /^\/api\/auth\/(me|signup|login|logout)$/, load: () => import('../api/auth.js'), param: 'action' },
+  { pattern: /^\/api\/shares\/live$/, load: () => import('../api/share-live.js') },
   { pattern: /^\/api\/shares\/([^/]+)\/complete$/, load: () => import('../api/share-complete.js') },
-  { pattern: /^\/api\/shares\/([^/]+)\/otp$/, load: () => import('../api/share-otp.js') },
   { pattern: /^\/api\/shares\/([^/]+)\/verify$/, load: () => import('../api/share-verify.js') },
   { pattern: /^\/api\/shares\/([^/]+)$/, load: () => import('../api/share.js') },
   { pattern: /^\/api\/shares$/, load: () => import('../api/shares.js') },
