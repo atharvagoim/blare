@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Start S3-compatible test server
+        run: |
+          pip install "moto[server]"
+          nohup moto_server -p 4566 > moto.log 2>&1 &
+          sleep 3
+      - run: npm test
+        env:
+          TEST_MONGODB_URI: mongodb://127.0.0.1:27017/vanish-ci
+          TEST_S3_ENDPOINT: http://127.0.0.1:4566
+      - run: npm run build

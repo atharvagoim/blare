@@ -1,0 +1,493 @@
+@import '@fontsource/alkalami/400.css';
+@import '@fontsource/inter/500.css';
+@import './motion.css';
+
+/*
+ * Every screen is the Figma "iPhone 17" frame: a 402 × 874 canvas with elements at their
+ * exact Figma coordinates. Below 402px wide the whole canvas scales down (--s), so phones
+ * keep identical proportions. Wider screens show the canvas at 1:1, centred, with the corner
+ * decorations pinned to the window corners.
+ */
+:root {
+  --s: 1;
+  --black: #000000;
+  --white: #ffffff;
+  --red: #bf0000;
+  --grey-border: #8d8a8a;
+  --placeholder: #8c8c8c;
+  --drop-title: #4e4c4c;
+  --drop-sub: #7d7d7d;
+  --alkalami: 'Alkalami', serif;
+  --inter: 'Inter', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--white);
+  color: var(--black);
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--alkalami);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Page + canvas ---------- */
+
+.screen {
+  position: relative;
+  width: 100%;
+  min-height: max(calc(100dvh - 120px), calc(874px * var(--s)));
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--white);
+}
+
+.canvas-wrap {
+  position: relative;
+  width: calc(402px * var(--s));
+  height: calc(874px * var(--s));
+  margin: 0 auto;
+  z-index: 1;
+}
+
+.canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 402px;
+  height: 874px;
+  transform: scale(var(--s));
+  transform-origin: 0 0;
+}
+
+.abs {
+  position: absolute;
+}
+
+/* Figma text nodes: Alkalami, "normal" leading, centred in their box */
+.t {
+  position: absolute;
+  margin: 0;
+  font-family: var(--alkalami);
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.img-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- Decorations (page level, scaled with --s) ---------- */
+
+.decor {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.decor-cactus {
+  left: calc(-50px * var(--s));
+  bottom: calc(-33px * var(--s));
+  width: calc(147px * var(--s));
+  height: calc(147px * var(--s));
+  transform: rotate(12.72deg);
+}
+
+.decor-sunflower {
+  right: calc(-27.94px * var(--s));
+  bottom: calc(-31.94px * var(--s));
+  width: calc(139px * var(--s));
+  height: calc(139px * var(--s));
+  transform: rotate(-14.22deg);
+}
+
+.decor-sunflower.is-expired {
+  right: calc(-22.94px * var(--s));
+  bottom: calc(-30.94px * var(--s));
+}
+
+.decor-disco {
+  right: calc(-28px * var(--s));
+  width: calc(272px * var(--s));
+  height: calc(280px * var(--s));
+  bottom: calc(68px * var(--s));
+}
+
+.decor-cactus.is-low {
+  bottom: calc(-85px * var(--s));
+}
+
+.decor-disco.is-signup {
+  bottom: calc(-95px * var(--s));
+}
+
+/* ---------- Menu (page level, top-left) ---------- */
+
+.menu-btn {
+  position: absolute;
+  z-index: 5;
+  left: calc(13px * var(--s));
+  top: calc(10px * var(--s));
+  width: calc(23px * var(--s));
+  height: calc(23px * var(--s));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.menu-panel {
+  position: absolute;
+  z-index: 6;
+  left: calc(13px * var(--s));
+  top: calc(42px * var(--s));
+  min-width: 190px;
+  padding: 10px 0;
+  background: var(--white);
+  border: 3px solid var(--black);
+  border-radius: 30px;
+  display: grid;
+  transform-origin: top left;
+  animation: menu-in 140ms ease-out both;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-panel {
+    animation: none;
+  }
+}
+
+.menu-panel a,
+.menu-panel button {
+  display: block;
+  padding: 8px 22px;
+  border: 0;
+  background: none;
+  text-align: left;
+  text-decoration: none;
+  font-family: var(--alkalami);
+  font-size: 17px;
+  line-height: normal;
+  color: var(--black);
+  cursor: pointer;
+}
+
+.menu-panel a:hover,
+.menu-panel button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.menu-panel .menu-user {
+  padding: 4px 22px 8px;
+  font-size: 15px;
+  color: var(--placeholder);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Controls ---------- */
+
+.pill {
+  position: absolute;
+  border: 0;
+  padding: 0;
+  border-radius: 30px;
+  cursor: pointer;
+  font-family: var(--alkalami);
+  font-size: 17px;
+  line-height: normal;
+  overflow: hidden;
+  transition: transform 120ms ease;
+}
+
+.pill:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pill:disabled {
+  cursor: default;
+}
+
+.pill-black {
+  background: var(--black);
+  color: var(--white);
+}
+
+.pill-red {
+  background: var(--red);
+  color: var(--white);
+}
+
+.pill-outline {
+  background: var(--white);
+  color: var(--black);
+  border: 2px solid var(--black);
+}
+
+.pill .label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.pill .progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #3a3a3a;
+  transition: width 200ms linear;
+}
+
+.box {
+  position: absolute;
+  background: var(--white);
+  border: 3px solid var(--black);
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.field {
+  position: absolute;
+  background: var(--white);
+  border: 3px solid var(--black);
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.field input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: var(--alkalami);
+  font-size: 16px;
+  color: var(--black);
+}
+
+.field input::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
+}
+
+.field:focus-within {
+  box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--black);
+}
+
+.eye-btn {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.eye-btn img {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+.eye-btn.is-shown img {
+  opacity: 0.45;
+}
+
+.status {
+  position: absolute;
+  left: 21px;
+  width: 360px;
+  margin: 0;
+  font-family: var(--alkalami);
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--black);
+  z-index: 2;
+}
+
+.status.is-error {
+  color: var(--red);
+}
+
+.status a,
+.status button {
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.status span.bg {
+  background: var(--white);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+/* Tiny "switch to the other auth page" note under the submit button */
+.switch-note {
+  position: absolute;
+  left: 21px;
+  width: 360px;
+  margin: 0;
+  font-family: var(--alkalami);
+  font-size: 11px;
+  line-height: normal;
+  text-align: center;
+  color: var(--placeholder);
+}
+
+.switch-note a {
+  color: var(--black);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  position: relative;
+  z-index: 2;
+  background: var(--black);
+  color: var(--white);
+  padding: 28px 24px 20px;
+  font-family: var(--inter);
+}
+
+.footer-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px 32px;
+}
+
+.footer-brand {
+  display: grid;
+  gap: 6px;
+  max-width: 340px;
+}
+
+.footer-logo {
+  font-family: var(--alkalami);
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+.footer-tag {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #a3a3a3;
+}
+
+.footer-nav {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-nav a {
+  position: relative;
+  color: var(--white);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.footer-nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms var(--ease-out);
+}
+
+.footer-nav a:hover::after {
+  transform: scaleX(1);
+}
+
+.footer-nav a:focus-visible {
+  outline-color: var(--white);
+}
+
+.footer-copy {
+  max-width: 880px;
+  margin: 22px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid #2a2a2a;
+  font-size: 11px;
+  color: #7a7a7a;
+}

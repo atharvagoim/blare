@@ -1,0 +1,10 @@
+[
+  {
+    "corsRuleName": "vanish-browser-upload",
+    "allowedOrigins": ["https://your-project.vercel.app", "http://localhost:5173"],
+    "allowedOperations": ["s3_put", "s3_get", "s3_head"],
+    "allowedHeaders": ["content-type", "content-length"],
+    "exposeHeaders": ["etag"],
+    "maxAgeSeconds": 3600
+  }
+]

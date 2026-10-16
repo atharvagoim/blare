@@ -1,0 +1,323 @@
+/* =====================================================================
+   Motion layer — purely decorative, switched off by prefers-reduced-motion
+   at the bottom. Decor/pills keep their Figma `transform`; we animate the
+   individual `translate` / `rotate` / `scale` properties so they compose.
+   ===================================================================== */
+
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --mx: 0;
+  --my: 0;
+}
+
+/* ---------- Staggered page entrance ---------- */
+
+.canvas > * {
+  animation: rise-in 700ms var(--ease-out) both;
+}
+.canvas > :nth-child(1)  { animation-delay: 60ms; }
+.canvas > :nth-child(2)  { animation-delay: 120ms; }
+.canvas > :nth-child(3)  { animation-delay: 180ms; }
+.canvas > :nth-child(4)  { animation-delay: 240ms; }
+.canvas > :nth-child(5)  { animation-delay: 300ms; }
+.canvas > :nth-child(6)  { animation-delay: 360ms; }
+.canvas > :nth-child(7)  { animation-delay: 420ms; }
+.canvas > :nth-child(8)  { animation-delay: 480ms; }
+.canvas > :nth-child(9)  { animation-delay: 540ms; }
+.canvas > :nth-child(n+10) { animation-delay: 600ms; }
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.94;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    filter: blur(0);
+  }
+}
+
+/* Titles get a red shimmer sweep after they land */
+h1.t,
+h2.t {
+  background: linear-gradient(100deg, #000 40%, #bf0000 50%, #000 60%) 150% 0 / 250% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rise-in 700ms var(--ease-out) both, title-shine 3.6s ease-in-out 1.1s infinite;
+}
+
+@keyframes title-shine {
+  0%        { background-position: 150% 0; }
+  45%, 100% { background-position: -50% 0; }
+}
+
+/* ---------- Decorations: pop in, then float / sway / spin ---------- */
+
+.decor {
+  will-change: translate, rotate;
+  animation: decor-pop 1100ms var(--ease-spring) 250ms both, decor-float 7s ease-in-out 1.4s infinite;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.18));
+}
+
+.decor-cactus {
+  animation-name: decor-pop, decor-sway;
+  animation-duration: 1100ms, 6s;
+  transform-origin: 50% 90%;
+}
+
+.decor-sunflower {
+  animation-name: decor-pop, decor-sway-r;
+  animation-duration: 1100ms, 5s;
+  transform-origin: 50% 90%;
+}
+
+.decor-disco {
+  animation-name: decor-pop, disco-spin;
+  animation-duration: 1100ms, 18s;
+  animation-timing-function: var(--ease-spring), linear;
+  animation-delay: 250ms, 1.4s;
+  animation-iteration-count: 1, infinite;
+  filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 36px rgba(180, 140, 255, 0.55));
+}
+
+@keyframes decor-pop {
+  from { opacity: 0; scale: 0.2; translate: 0 80px; }
+  to   { opacity: 1; scale: 1;   translate: 0 0; }
+}
+@keyframes decor-float {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -12px; }
+}
+@keyframes decor-sway {
+  0%, 100% { rotate: -4deg; translate: 0 0; }
+  50%      { rotate: 5deg;  translate: 4px -8px; }
+}
+@keyframes decor-sway-r {
+  0%, 100% { rotate: 5deg;  translate: 0 0; }
+  50%      { rotate: -6deg; translate: -4px -10px; }
+}
+@keyframes disco-spin {
+  from { rotate: 0deg; }
+  to   { rotate: 360deg; }
+}
+
+/* ---------- Menu ---------- */
+
+.menu-btn {
+  transition: transform 300ms var(--ease-spring);
+  animation: rise-in 600ms var(--ease-out) 100ms both;
+}
+.menu-btn:hover  { transform: rotate(90deg) scale(1.2); }
+.menu-btn:active { transform: rotate(90deg) scale(0.9); }
+
+.menu-panel {
+  animation: menu-pop 380ms var(--ease-spring) both;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+}
+.menu-panel > * {
+  animation: menu-item 380ms var(--ease-out) both;
+}
+.menu-panel > :nth-child(1) { animation-delay: 60ms; }
+.menu-panel > :nth-child(2) { animation-delay: 110ms; }
+.menu-panel > :nth-child(3) { animation-delay: 160ms; }
+.menu-panel > :nth-child(4) { animation-delay: 210ms; }
+
+.menu-panel a,
+.menu-panel button {
+  transition: translate 200ms var(--ease-out), background 200ms;
+}
+.menu-panel a:hover,
+.menu-panel button:hover {
+  translate: 6px 0;
+  text-decoration: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.07), transparent);
+}
+
+@keyframes menu-pop {
+  from { opacity: 0; scale: 0.7; translate: -10px -12px; rotate: -3deg; }
+}
+@keyframes menu-item {
+  from { opacity: 0; translate: -14px 0; }
+}
+
+/* ---------- Buttons ---------- */
+
+.pill {
+  transition: transform 250ms var(--ease-spring), box-shadow 250ms, filter 250ms;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+}
+.pill:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+}
+.pill:active:not(:disabled) {
+  transform: translateY(1px) scale(0.96);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+.pill:disabled {
+  filter: saturate(0.4) opacity(0.75);
+}
+
+/* light sweep across buttons */
+.pill:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+  animation: sweep 4.5s ease-in-out 1.5s infinite;
+}
+.pill-outline:not(:disabled)::after {
+  background: linear-gradient(100deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+}
+.pill:hover:not(:disabled)::after {
+  animation: sweep 0.9s ease-out;
+}
+@keyframes sweep {
+  0%        { transform: translateX(-150%) skewX(-20deg); }
+  35%, 100% { transform: translateX(450%) skewX(-20deg); }
+}
+
+.pill-red:not(:disabled) {
+  animation: rise-in 700ms var(--ease-out) both, red-pulse 2.6s ease-in-out 1.4s infinite;
+}
+@keyframes red-pulse {
+  0%, 100% { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12), 0 0 0 0 rgba(191, 0, 0, 0.5); }
+  60%      { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12), 0 0 0 14px rgba(191, 0, 0, 0); }
+}
+
+.pill .progress {
+  background: linear-gradient(90deg, #2b2b2b, #6a6a6a, #2b2b2b);
+  background-size: 200% 100%;
+  animation: progress-flow 1.1s linear infinite;
+}
+@keyframes progress-flow {
+  to { background-position: -200% 0; }
+}
+
+/* ---------- Boxes & fields ---------- */
+
+.box,
+.field {
+  transition: transform 300ms var(--ease-spring), box-shadow 300ms;
+}
+.field:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+.field:focus-within {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--black), 0 14px 28px rgba(0, 0, 0, 0.2);
+}
+.box:hover {
+  transform: translateY(-3px) rotate(-0.4deg);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+
+.eye-btn {
+  transition: transform 250ms var(--ease-spring);
+}
+.eye-btn:hover {
+  transform: scale(1.35) rotate(-8deg);
+}
+
+/* ---------- Status messages ---------- */
+
+.status {
+  animation: status-pop 450ms var(--ease-spring) both;
+}
+.status.is-error {
+  animation: status-pop 450ms var(--ease-spring) both, shake 500ms 150ms both;
+}
+@keyframes status-pop {
+  from { opacity: 0; scale: 0.8; translate: 0 10px; }
+}
+@keyframes shake {
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+  100%     { transform: none; }
+}
+
+/* ---------- Reduced motion: kill it all ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  h1.t,
+  h2.t {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* ---------- Logo: bouncy wobble + glow ---------- */
+
+.logo {
+  animation: rise-in 700ms var(--ease-out) both, logo-wobble 5s ease-in-out 1.2s infinite;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.18));
+  transition: scale 300ms var(--ease-spring);
+  cursor: pointer;
+}
+.logo:hover {
+  scale: 1.08;
+  animation: rise-in 700ms var(--ease-out) both, logo-jelly 600ms ease-out;
+}
+@keyframes logo-wobble {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  20%      { transform: translateY(-6px) rotate(-2.5deg) scale(1.03); }
+  40%      { transform: translateY(0) rotate(2deg) scale(0.98, 1.03); }
+  60%      { transform: translateY(-4px) rotate(-1.5deg) scale(1.02); }
+  80%      { transform: translateY(0) rotate(1deg) scale(1); }
+}
+@keyframes logo-jelly {
+  0%   { transform: scale(1, 1); }
+  30%  { transform: scale(1.18, 0.82); }
+  50%  { transform: scale(0.88, 1.14); }
+  70%  { transform: scale(1.06, 0.95); }
+  100% { transform: scale(1, 1); }
+}
+
+/* ---------- Monkey: hides behind the form, peeks out ---------- */
+
+.monkey-clip {
+  overflow: hidden;
+}
+.monkey {
+  animation: monkey-peek 6s ease-in-out 1.2s infinite;
+  translate: 0 140px;
+}
+@keyframes monkey-peek {
+  0%, 8%    { translate: 0 140px; }
+  22%       { translate: 0 -4px; }
+  28%       { translate: 0 6px; }
+  34%, 52%  { translate: 0 0; rotate: 0deg; }
+  57%       { rotate: -6deg; }
+  62%       { rotate: 5deg; }
+  66%       { rotate: 0deg; translate: 0 0; }
+  76%       { translate: 0 150px; }
+  100%      { translate: 0 140px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .monkey {
+    animation: none !important;
+  }
+  .monkey {
+    translate: 0 0;
+  }
+}

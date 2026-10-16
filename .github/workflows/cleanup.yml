@@ -1,0 +1,22 @@
+name: Purge expired shares
+
+# Vercel Hobby cron runs once a day. This pings the same endpoint every 5 minutes so expired
+# files are deleted from storage soon after they expire (expiry is also enforced on every request).
+# Add repository secrets: APP_URL (e.g. https://your-project.vercel.app) and CRON_SECRET (same as in Vercel).
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cleanup endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --silent --show-error --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/cleanup"
