@@ -508,8 +508,8 @@ textarea {
   text-align: center;
   font-family: var(--inter);
   font-weight: 500;
-  font-size: 13px;
-  letter-spacing: 0.12em;
+  font-size: 16px;
+  letter-spacing: 0.3em;
   color: var(--black);
 }
 
@@ -671,4 +671,73 @@ textarea {
 .live-btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ---------- LED "LIVE" sign: the Live links button ---------- */
+
+.live-sign {
+  position: relative;
+  display: block;
+  width: 78px;
+  line-height: 0;
+  border-radius: 12px;
+  animation: live-glow 2.2s ease-in-out infinite, live-flicker 7s steps(1) infinite;
+  transition: transform 300ms var(--ease-spring);
+}
+
+.live-sign img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+.live-sign:hover {
+  transform: scale(1.18) rotate(-3deg);
+}
+
+.live-sign:active {
+  transform: scale(0.95);
+}
+
+/* a bright sweep that runs across the LEDs */
+.live-sign::after {
+  content: '';
+  position: absolute;
+  inset: 8% 6%;
+  border-radius: 8px;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  background-size: 300% 100%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: live-scan 3.2s ease-in-out infinite;
+}
+
+@keyframes live-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255, 30, 30, 0.55)) brightness(0.95); }
+  50%      { filter: drop-shadow(0 0 11px rgba(255, 30, 30, 0.95)) brightness(1.18); }
+}
+
+/* the odd LED-sign stutter */
+@keyframes live-flicker {
+  0%, 91%, 94%, 97%, 100% { opacity: 1; }
+  92%, 96%                 { opacity: 0.55; }
+}
+
+@keyframes live-scan {
+  0%   { background-position: 150% 0; }
+  60%, 100% { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-sign,
+  .live-sign::after {
+    animation: none !important;
+  }
+}
+
+/* A field the last submit complained about */
+.field[data-invalid] {
+  border-color: var(--red);
+  animation: shake 450ms both;
 }

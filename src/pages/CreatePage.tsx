@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'rea
 import { Link, useNavigate } from 'react-router-dom';
 import { ACCEPT_ATTRIBUTE, DEFAULT_EXPIRY_SECONDS, EXPIRY_OPTIONS, LARGE_FILE_BYTES, LARGE_FILE_MAX_TTL_SECONDS, MAX_FILE_BYTES, MAX_TEXT_CHARS, PIN_LENGTH, classifyFileName } from '../../shared/limits';
 import { TURNSTILE_SITE_KEY, Turnstile } from '../components/Turnstile';
-import { logo, radioOff, radioOn, selectFrame } from '../design/assets';
+import { liveSign, logo, radioOff, radioOn, selectFrame } from '../design/assets';
 import { Img, Pill, T } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, uploadToStorage } from '../lib/api';
@@ -33,6 +33,8 @@ export function CreatePage() {
     return () => abortRef.current?.abort();
   }, []);
 
+  // The Private row grows to hold the PIN field, pushing the button and messages down.
+  const pinShift = visibility === 'private' ? 53 : 0;
   const isLarge = mode === 'file' && !!file && file.size > LARGE_FILE_BYTES;
 
   function pickFile(f: File | null | undefined) {
@@ -105,8 +107,8 @@ export function CreatePage() {
       decor={['cactus', 'sunflower']}
       label="Create a link"
       topRight={
-        <Link to="/live" className="top-btn">
-          Live links
+        <Link to="/live" className="live-sign" aria-label="Live links" title="Live links">
+          <img src={liveSign} alt="" draggable={false} />
         </Link>
       }
     >
@@ -289,7 +291,8 @@ export function CreatePage() {
                     left: 17,
                     top: o.row,
                     width: 368,
-                    height: 41,
+                    height: o.value === 'private' && selected ? 100 : 41,
+                    transition: 'height 300ms var(--ease-spring), border-color 200ms',
                     background: '#fff',
                     border: `3px solid ${selected ? '#000' : 'var(--grey-border)'}`,
                     borderRadius: 30,
@@ -304,7 +307,7 @@ export function CreatePage() {
                   {o.label}
                 </T>
                 {o.value === 'private' && selected && (
-                  <div className="pin-field" style={{ left: 247, top: o.row + 6, width: 126, height: 29 }}>
+                  <div className="pin-field" style={{ left: 34, top: o.row + 47, width: 125, height: 38 }}>
                     <label htmlFor="link-pin" className="visually-hidden">
                       {PIN_LENGTH}-digit PIN for the receiver
                     </label>
@@ -328,7 +331,7 @@ export function CreatePage() {
         <Pill
           type="submit"
           variant="black"
-          rect={{ left: 126, top: 733, width: 148, height: 41 }}
+          rect={{ left: 126, top: 733 + pinShift, width: 148, height: 41 }}
           label={busy?.label ?? 'Create Link'}
           disabled={!!busy && busy.progress === undefined}
           progress={busy?.progress}
@@ -337,13 +340,13 @@ export function CreatePage() {
         />
 
         {TURNSTILE_SITE_KEY && (
-          <div className="abs" style={{ left: 36, top: 790 }}>
+          <div className="abs" style={{ left: 36, top: 790 + pinShift }}>
             <Turnstile onToken={setTurnstileToken} resetKey={turnstileReset} />
           </div>
         )}
 
         {status && (
-          <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: 784 }}>
+          <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: 784 + pinShift }}>
             <span className="bg">
               {status.message}
             </span>

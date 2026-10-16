@@ -23,6 +23,9 @@ function Field({
   onFocus,
   onBlur,
   inputMode,
+  invalid,
+  autoFocus,
+  disabled,
 }: {
   id: string;
   top: number;
@@ -36,10 +39,13 @@ function Field({
   onFocus?: () => void;
   onBlur?: () => void;
   inputMode?: 'email' | 'text';
+  invalid?: boolean;
+  autoFocus?: boolean;
+  disabled?: boolean;
 }) {
   const [shown, setShown] = useState(false);
   return (
-    <div className="field" style={{ left: 17, top, width: 368, height: 42 }}>
+    <div className="field" data-invalid={invalid || undefined} style={{ left: 17, top, width: 368, height: 42 }}>
       <label htmlFor={id} className="visually-hidden">
         {placeholder}
       </label>
@@ -50,6 +56,11 @@ function Field({
         value={value}
         autoComplete={autoComplete}
         inputMode={inputMode}
+        autoFocus={autoFocus}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        autoCapitalize={type === 'email' || password ? 'none' : undefined}
+        spellCheck={type === 'email' || password ? false : undefined}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
         onBlur={onBlur}
@@ -76,8 +87,19 @@ function useAfterAuth() {
   const navigate = useNavigate();
   const location = useLocation();
   const next = (location.state as { next?: string } | null)?.next;
-  return () => navigate(next && next.startsWith('/') ? next : '/', { replace: true });
+  return () => navigate(next && next.startsWith('/') && !next.startsWith('//') ? next : '/', { replace: true });
 }
+
+/** Someone who is already logged in has no business on the login / sign-up screens. */
+function useRedirectIfLoggedIn(done: () => void) {
+  const { user, loading } = useAuth();
+  useEffect(() => {
+    if (!loading && user) done();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user]);
+}
+
+type FieldError = { field: 'email' | 'password' | 'name' | 'confirm' | 'all'; message: string } | null;
 
 // Figma "iPhone 17 - 6"
 export function LoginPage() {
@@ -86,16 +108,19 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FieldError>(null);
+
+  useRedirectIfLoggedIn(done);
 
   useEffect(() => {
-    document.title = 'Login · share';
+    document.title = 'Login · Blare';
   }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email.trim() || !password) return setError('Enter your email ID and password.');
+    if (!email.trim()) return setError({ field: 'email', message: 'Enter your email ID.' });
+    if (!password) return setError({ field: 'password', message: 'Enter your password.' });
     setBusy(true);
     try {
       const { user } = await api.login(email.trim(), password);
@@ -103,7 +128,11 @@ export function LoginPage() {
       done();
     } catch (err) {
       setBusy(false);
-      setError(err instanceof ApiError ? err.message : 'Could not log in. Try again.');
+      if (err instanceof ApiError && err.code === 'invalid_login') {
+        setPassword('');
+        return setError({ field: 'all', message: err.message });
+      }
+      setError({ field: 'all', message: err instanceof ApiError ? err.message : 'Could not log in. Check your connection and try again.' });
     }
   }
 
@@ -112,15 +141,15 @@ export function LoginPage() {
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 90, top: 45, width: 222, height: 75 }} alt="Blare" />
         <Monkey src={monkey} rect={{ left: 228, top: 150, width: 115, height: 134 }} />
-        <Field id="login-email" top={275} textLeft={31.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" value={email} onChange={setEmail} />
-        <Field id="login-password" top={335} textLeft={29.32} placeholder="Password" password autoComplete="current-password" value={password} onChange={setPassword} />
+        <Field id="login-email" top={275} textLeft={31.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" autoFocus disabled={busy} invalid={error?.field === 'email' || error?.field === 'all'} value={email} onChange={setEmail} />
+        <Field id="login-password" top={335} textLeft={29.32} placeholder="Password" password autoComplete="current-password" disabled={busy} invalid={error?.field === 'password' || error?.field === 'all'} value={password} onChange={setPassword} />
         <Pill type="submit" variant="black" rect={{ left: 127, top: 410, width: 148, height: 41 }} label={busy ? 'Logging in…' : 'Login'} disabled={busy} />
         <p className="switch-note" style={{ top: 472 }}>
           Don&rsquo;t have an account? <Link to="/signup">Create a new one</Link>
         </p>
         {error && (
           <p className="status is-error" role="alert" style={{ top: 504 }}>
-            <span className="bg">{error}</span>
+            <span className="bg">{error.message}</span>
           </p>
         )}
       </form>
@@ -137,19 +166,21 @@ export function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<FieldError>(null);
+
+  useRedirectIfLoggedIn(done);
 
   useEffect(() => {
-    document.title = 'Sign up · share';
+    document.title = 'Sign up · Blare';
   }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) return setError('Enter your full name.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email ID.');
-    if (password.length < 8) return setError('Password must be at least 8 characters.');
-    if (password !== confirm) return setError('Passwords do not match.');
+    if (!name.trim()) return setError({ field: 'name', message: 'Enter your full name.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError({ field: 'email', message: 'Enter a valid email ID.' });
+    if (password.length < 8) return setError({ field: 'password', message: 'Password must be at least 8 characters.' });
+    if (password !== confirm) return setError({ field: 'confirm', message: 'Passwords do not match.' });
     setBusy(true);
     try {
       const { user } = await api.signup({ name: name.trim(), email: email.trim(), password, confirmPassword: confirm });
@@ -157,7 +188,8 @@ export function SignupPage() {
       done();
     } catch (err) {
       setBusy(false);
-      setError(err instanceof ApiError ? err.message : 'Could not create your account. Try again.');
+      const field = err instanceof ApiError && err.code === 'email_taken' ? 'email' : 'all';
+      setError({ field, message: err instanceof ApiError ? err.message : 'Could not create your account. Check your connection and try again.' });
     }
   }
 
@@ -166,17 +198,17 @@ export function SignupPage() {
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 90, top: 45, width: 222, height: 75 }} alt="Blare" />
         <Monkey src={monkey} rect={{ left: 228, top: 150, width: 115, height: 134 }} />
-        <Field id="signup-name" top={275} textLeft={26.91} placeholder="Full name" autoComplete="name" value={name} onChange={setName} />
-        <Field id="signup-email" top={333} textLeft={27.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" value={email} onChange={setEmail} />
-        <Field id="signup-password" top={391} textLeft={29.32} placeholder="Password" password autoComplete="new-password" value={password} onChange={setPassword} />
-        <Field id="signup-confirm" top={449} textLeft={28.13} placeholder="ConfirmPassword" password autoComplete="new-password" value={confirm} onChange={setConfirm} />
+        <Field id="signup-name" top={275} textLeft={26.91} placeholder="Full name" autoComplete="name" autoFocus disabled={busy} invalid={error?.field === 'name'} value={name} onChange={setName} />
+        <Field id="signup-email" top={333} textLeft={27.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" disabled={busy} invalid={error?.field === 'email'} value={email} onChange={setEmail} />
+        <Field id="signup-password" top={391} textLeft={29.32} placeholder="Password" password autoComplete="new-password" disabled={busy} invalid={error?.field === 'password'} value={password} onChange={setPassword} />
+        <Field id="signup-confirm" top={449} textLeft={28.13} placeholder="Confirm password" password autoComplete="new-password" disabled={busy} invalid={error?.field === 'confirm'} value={confirm} onChange={setConfirm} />
         <Pill type="submit" variant="black" rect={{ left: 127, top: 520, width: 148, height: 41 }} label={busy ? 'Creating…' : 'Sign up'} disabled={busy} />
         <p className="switch-note" style={{ top: 574 }}>
           Already have an account? <Link to="/login">Login</Link>
         </p>
         {error && (
           <p className="status is-error" role="alert" style={{ top: 604 }}>
-            <span className="bg">{error}</span>
+            <span className="bg">{error.message}</span>
           </p>
         )}
       </form>

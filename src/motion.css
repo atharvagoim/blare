@@ -149,7 +149,7 @@ h2.t {
 /* ---------- Buttons ---------- */
 
 .pill {
-  transition: transform 250ms var(--ease-spring), box-shadow 250ms, filter 250ms;
+  transition: transform 250ms var(--ease-spring), box-shadow 250ms, filter 250ms, top 300ms var(--ease-spring);
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
 }
 .pill:hover:not(:disabled) {

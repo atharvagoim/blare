@@ -69,6 +69,15 @@ function checkOrigin(req: ApiRequest) {
     if (req.headers['sec-fetch-site'] === 'cross-site') throw errors.forbidden('Requests from this origin are not allowed.');
     return;
   }
+  // A browser sets Origin itself and a foreign site cannot make it match our Host, so equal
+  // host means same-origin. This covers localhost, ngrok and every Vercel URL without configuration.
+  try {
+    const fwd = req.headers['x-forwarded-host'];
+    const host = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || req.headers.host;
+    if (host && new URL(origin).host === host) return;
+  } catch {
+    throw errors.forbidden('Requests from this origin are not allowed.');
+  }
   const allowed = allowedOrigins();
   if (allowed.size === 0) return; // not configured (local dev)
   if (!allowed.has(origin)) throw errors.forbidden('Requests from this origin are not allowed.');

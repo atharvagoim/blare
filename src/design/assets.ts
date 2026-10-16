@@ -13,3 +13,4 @@ export { default as menuIcon } from '../assets/figma/menu.png';
 export { default as selectFrame } from '../assets/figma/select.svg';
 export { default as radioOn } from '../assets/figma/radio-on.svg';
 export { default as radioOff } from '../assets/figma/radio-off.svg';
+export { default as liveSign } from '../assets/figma/live.webp';
