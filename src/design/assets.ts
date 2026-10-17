@@ -1,6 +1,4 @@
 export { default as logo } from '../assets/figma/logo-blare.webp';
-export { default as dog } from '../assets/figma/dog.jpg';
-export { default as crying } from '../assets/figma/crying.jpg';
 export { default as privateImage } from '../assets/figma/private.jpg';
 export { default as copyIcon } from '../assets/figma/copy.png';
 export { default as shareIcon } from '../assets/figma/share.png';

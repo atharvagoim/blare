@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PIN_LENGTH, type LockedShareView, type ShareView } from '../../shared/limits';
-import { copyIcon, crying, dog, logo, privateImage, shareIcon } from '../design/assets';
+import { copyIcon, logo, privateImage, shareIcon } from '../design/assets';
 import { Img, Pill, T, type Rect } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, isLocked } from '../lib/api';
@@ -77,24 +77,17 @@ export function SharePage() {
 }
 
 // ---------------------------------------------------------------------------
-// Figma "iPhone 17 - 5": The Link has expired :(
+// Expired / deleted / unknown link
 // ---------------------------------------------------------------------------
 
 export function Expired() {
   const navigate = useNavigate();
   return (
     <Screen label="Link expired">
-      <div className="abs" style={{ left: 73, top: 103, width: 256, height: 256, borderRadius: 20, overflow: 'hidden' }}>
-        <img className="img-cover" src={dog} alt="" />
-      </div>
-      <div className="abs" style={{ left: 284, top: 313, width: 61, height: 61, borderRadius: '50%', overflow: 'hidden' }}>
-        <img src={crying} alt="" style={{ position: 'absolute', height: '110.28%', left: '-11.83%', top: '-3.53%', width: '126.88%', maxWidth: 'none' }} />
-      </div>
-      <T as="h1" cx={201} top={395} size={25}>
-        The Link has expired :(
+      <T as="h1" cx={201} top={380} size={26} width={360}>
+        The link has expired
       </T>
-      <Pill variant="black" rect={{ left: 118, top: 467, width: 166, height: 41 }} label="Create new Link" onClick={() => navigate('/')} />
-      <Img className="logo" src={logo} rect={{ left: 45, top: 529, width: 312, height: 106 }} alt="Blare" />
+      <Pill variant="black" rect={{ left: 113, top: 442, width: 176, height: 40 }} label="Create new Link" onClick={() => navigate('/')} />
     </Screen>
   );
 }
