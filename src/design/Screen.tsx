@@ -81,7 +81,7 @@ function Menu() {
       {open && (
         <div id="site-menu" ref={panel} className="menu-panel">
           <Link to="/" onClick={close}>
-            Create new link
+            Create new
           </Link>
           <Link to="/live" onClick={close}>
             Live links

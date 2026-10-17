@@ -84,10 +84,11 @@ export function Expired() {
   const navigate = useNavigate();
   return (
     <Screen label="Link expired">
-      <T as="h1" cx={201} top={380} size={26} width={360}>
+      <Img className="logo" src={logo} rect={{ left: 66, top: 230, width: 270, height: 100 }} alt="Blare" />
+      <T cx={201} top={362} size={26} width={360} style={{ animation: 'none' }}>
         The link has expired
       </T>
-      <Pill variant="black" rect={{ left: 113, top: 442, width: 176, height: 40 }} label="Create new Link" onClick={() => navigate('/')} />
+      <Pill variant="black" rect={{ left: 113, top: 424, width: 176, height: 40 }} label="Create new" onClick={() => navigate('/')} />
     </Screen>
   );
 }

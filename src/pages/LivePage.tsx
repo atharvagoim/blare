@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { LiveShare } from '../../shared/limits';
 import { logo } from '../design/assets';
-import { Img, Pill, T } from '../design/primitives';
+import { Img, Pill } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -80,11 +80,7 @@ export function LivePage() {
   return (
     <Screen label="Live links">
       <Img className="logo" src={logo} rect={{ left: 46, top: 66, width: 312, height: 106 }} alt="Blare" />
-      <T as="h1" cx={201} top={186} size={22}>
-        Live links
-      </T>
-
-      <div className="live-scroll" style={{ left: 18, top: 236, width: 368, height: 520 }}>
+      <div className="live-scroll" style={{ left: 18, top: 200, width: 368, height: 560 }}>
         {state.name === 'loading' && <p className="live-empty">Loading…</p>}
         {state.name === 'error' && (
           <p className="live-empty is-error">
@@ -144,7 +140,7 @@ export function LivePage() {
           })}
       </div>
 
-      <Pill variant="black" rect={{ left: 113, top: 780, width: 176, height: 41 }} label="Create new Link" onClick={() => navigate('/')} />
+      <Pill variant="black" rect={{ left: 113, top: 780, width: 176, height: 41 }} label="Create new" onClick={() => navigate('/')} />
     </Screen>
   );
 }
