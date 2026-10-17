@@ -57,16 +57,11 @@ export function Img({
   );
 }
 
-/**
- * A Figma pill button. `labelTop` is the label's top inside the button (Figma: text top − button top);
- * `labelCx` is the label centre relative to the button's left edge.
- */
+/** A pill button. The label is centred in the button, so every button's text lines up the same way. */
 export function Pill({
   rect,
   variant,
   label,
-  labelTop = 8,
-  labelCx,
   onClick,
   disabled,
   type = 'button',
@@ -86,8 +81,6 @@ export function Pill({
   ariaLabel?: string;
   progress?: number;
 }) {
-  const border = variant === 'outline' ? 2 : 0;
-  const cx = (labelCx ?? rect.width / 2) - border;
   return (
     <button
       type={type}
@@ -99,9 +92,7 @@ export function Pill({
       aria-busy={progress !== undefined || undefined}
     >
       {progress !== undefined && <span className="progress" style={{ width: `${Math.round(progress * 100)}%` }} />}
-      <span className="label" style={{ top: labelTop - border, left: cx - 136, right: 'auto', width: 272, textAlign: 'center' }}>
-        {label}
-      </span>
+      <span className="label">{label}</span>
       {children}
     </button>
   );

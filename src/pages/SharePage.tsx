@@ -104,23 +104,25 @@ export function Expired() {
 // ---------------------------------------------------------------------------
 
 interface Layout {
-  download: Rect & { cx: number; label: string };
-  share: Rect & { textCx: number; textTop: number; iconLeft: number; iconTop: number };
+  download: Rect & { label: string };
+  share: Rect;
 }
 
+const BTN = { left: 113, width: 176, height: 40 };
+
 const LAYOUT_TEXT: Layout = {
-  download: { left: 127, top: 471, width: 148, height: 41, cx: 201, label: 'Download' },
-  share: { left: 127, top: 522, width: 148, height: 39, textCx: 188, textTop: 528, iconLeft: 92, iconTop: 10 },
+  download: { ...BTN, top: 471, label: 'Download' },
+  share: { ...BTN, top: 523 },
 };
 
 const LAYOUT_IMAGE: Layout = {
-  download: { left: 127, top: 583, width: 148, height: 41, cx: 201, label: 'Download' },
-  share: { left: 127, top: 634, width: 148, height: 39, textCx: 188, textTop: 640, iconLeft: 92, iconTop: 10 },
+  download: { ...BTN, top: 583, label: 'Download' },
+  share: { ...BTN, top: 635 },
 };
 
 const LAYOUT_ZIP: Layout = {
-  download: { left: 98, top: 319, width: 207, height: 41, cx: 201, label: 'Download file' },
-  share: { left: 127, top: 371, width: 148, height: 39, textCx: 188, textTop: 376, iconLeft: 92, iconTop: 9 },
+  download: { ...BTN, top: 319, label: 'Download file' },
+  share: { ...BTN, top: 371 },
 };
 
 function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
@@ -244,36 +246,19 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
         </T>
       )}
 
-      <Pill variant="black" rect={layout.download} label={layout.download.label} labelCx={layout.download.cx - layout.download.left} onClick={download} />
+      <Pill variant="black" rect={layout.download} label={layout.download.label} onClick={download} />
 
-      <button
-        type="button"
-        className="pill pill-outline"
-        style={{ left: layout.share.left, top: layout.share.top, width: layout.share.width, height: layout.share.height }}
+      <Pill
+        variant="outline"
+        rect={layout.share}
         onClick={share}
-        aria-live="polite"
-      >
-        <img
-          className="ico"
-          src={shareIcon}
-          alt=""
-          width={18}
-          height={18}
-          style={{ position: 'absolute', left: layout.share.iconLeft - 2, top: layout.share.iconTop - 2, display: shareLabel === 'Share' ? 'block' : 'none' }}
-        />
-        <span
-          className="label"
-          style={{
-            top: layout.share.textTop - layout.share.top - 2,
-            left: (shareLabel === 'Share' ? layout.share.textCx - layout.share.left : layout.share.width / 2) - 2 - 136,
-            right: 'auto',
-            width: 272,
-            textAlign: 'center',
-          }}
-        >
-          {shareLabel}
-        </span>
-      </button>
+        label={
+          <>
+            {shareLabel === 'Share' && <img className="ico" src={shareIcon} alt="" width={16} height={16} />}
+            {shareLabel}
+          </>
+        }
+      />
 
       {error && (
         <p className="status is-error" role="alert" style={{ top: statusTop }}>

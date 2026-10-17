@@ -84,54 +84,64 @@ export function LivePage() {
         Live links
       </T>
 
-      <div className="box" style={{ left: 18, top: 236, width: 368, height: 520 }}>
-        <div className="live-list">
-          {state.name === 'loading' && <p className="live-empty">Loading…</p>}
-          {state.name === 'error' && (
-            <p className="live-empty is-error">
-              {state.message}{' '}
-              <button type="button" onClick={() => void load()}>
-                Try again
-              </button>
-            </p>
-          )}
-          {state.name === 'ready' && rows.length === 0 && (
-            <p className="live-empty">
-              No live links right now.
-              <br />
-              {user ? 'Links you create show up here until they expire.' : <>Links made in this browser show up here. <Link to="/login">Login</Link> to see them on any device.</>}
-            </p>
-          )}
-          {state.name === 'ready' &&
-            rows.map((s) => {
-              const left = new Date(s.expiresAt).getTime() - (now + state.skew);
-              return (
-                <div className="live-row" key={s.id}>
-                  <div className="live-main">
-                    <span className="live-name">{s.fileName ?? 'Text snippet'}</span>
-                    <span className="live-meta">
-                      {KIND_LABEL[s.kind]}
-                      {s.size ? ` · ${formatBytes(s.size)}` : ''} · {s.visibility === 'private' ? 'Private' : 'Public'}
-                    </span>
-                  </div>
-                  <span className={`live-time${left < 60_000 ? ' is-low' : ''}`} aria-label="Time left">
-                    {timeLeft(left)}
+      <div className="live-scroll" style={{ left: 18, top: 236, width: 368, height: 520 }}>
+        {state.name === 'loading' && <p className="live-empty">Loading…</p>}
+        {state.name === 'error' && (
+          <p className="live-empty is-error">
+            {state.message}{' '}
+            <button type="button" onClick={() => void load()}>
+              Try again
+            </button>
+          </p>
+        )}
+        {state.name === 'ready' && rows.length === 0 && (
+          <p className="live-empty">
+            No live links right now.
+            <br />
+            {user ? 'Links you create show up here until they expire.' : <>Links made in this browser show up here. <Link to="/login">Login</Link> to see them on any device.</>}
+          </p>
+        )}
+        {state.name === 'ready' &&
+          rows.map((s) => {
+            const left = new Date(s.expiresAt).getTime() - (now + state.skew);
+            return (
+              <article className="live-card" key={s.id}>
+                <div className="live-main">
+                  <span className="live-name">{s.fileName ?? 'Text snippet'}</span>
+                  <span className="live-meta">
+                    {KIND_LABEL[s.kind]}
+                    {s.size ? ` · ${formatBytes(s.size)}` : ''} · {s.visibility === 'private' ? 'Private' : 'Public'}
                   </span>
-                  <div className="live-actions">
-                    <Link className="live-btn" to={`/s/${s.id}`}>
-                      Open
-                    </Link>
-                    <button type="button" className="live-btn" onClick={() => void copy(s.id)}>
-                      {copied === s.id ? 'Copied' : 'Copy'}
-                    </button>
-                    <button type="button" className="live-btn is-danger" onClick={() => void remove(s.id)} disabled={busyId === s.id}>
-                      {busyId === s.id ? '…' : 'Delete'}
-                    </button>
-                  </div>
                 </div>
-              );
-            })}
-        </div>
+                <span className={`live-time${left < 60_000 ? ' is-low' : ''}`} aria-label="Time left">
+                  {timeLeft(left)}
+                </span>
+                <button
+                  type="button"
+                  className="live-trash"
+                  aria-label={`Delete ${s.fileName ?? 'text snippet'}`}
+                  title="Delete"
+                  onClick={() => void remove(s.id)}
+                  disabled={busyId === s.id}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3.5 6.5h17" />
+                    <path d="M9 6.5V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    <path d="M5.8 6.5l.9 12.2a2 2 0 0 0 2 1.8h6.6a2 2 0 0 0 2-1.8l.9-12.2" />
+                    <path d="M10 10.5v6M14 10.5v6" />
+                  </svg>
+                </button>
+                <div className="live-actions">
+                  <Link className="live-btn" to={`/s/${s.id}`}>
+                    Open
+                  </Link>
+                  <button type="button" className="live-btn" onClick={() => void copy(s.id)}>
+                    {copied === s.id ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
       </div>
 
       <Pill variant="black" rect={{ left: 113, top: 780, width: 176, height: 41 }} label="Create new Link" onClick={() => navigate('/')} />

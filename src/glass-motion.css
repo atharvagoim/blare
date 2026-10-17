@@ -185,8 +185,21 @@ h2.t {
 .field[data-invalid] {
   animation: shake 450ms both;
 }
-.live-row {
-  animation: status-pop 400ms var(--ease-spring) both;
+.live-card {
+  animation: status-pop 450ms var(--ease-spring) both;
+  transition: transform 300ms var(--ease-spring), border-color 250ms;
+}
+.live-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--stroke-hi);
+}
+.live-trash {
+  transition: transform 250ms var(--ease-spring), background 200ms, border-color 200ms;
+}
+.live-trash:hover:not(:disabled) {
+  transform: scale(1.12);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--stroke-hi);
 }
 .live-btn {
   transition: transform 200ms var(--ease-spring), background 200ms, border-color 200ms;
@@ -195,10 +208,6 @@ h2.t {
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.14);
   border-color: var(--stroke-hi);
-}
-.live-btn.is-danger:hover:not(:disabled) {
-  background: var(--danger-glass);
-  border-color: var(--danger);
 }
 
 @keyframes status-pop {

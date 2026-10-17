@@ -275,8 +275,11 @@ textarea {
 
 .pill .label {
   position: absolute;
-  left: 0;
-  right: 0;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -543,15 +546,20 @@ textarea {
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.07), var(--shadow);
 }
 
-/* ---------- Live links page ---------- */
+/* ---------- Live links page: one glass card per link ---------- */
 
-.live-list {
+.live-scroll {
   position: absolute;
-  inset: 0;
   overflow-y: auto;
-  padding: 10px 16px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 2px 2px 12px;
+  scrollbar-width: none;
+}
+
+.live-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .live-empty {
@@ -579,23 +587,24 @@ textarea {
   cursor: pointer;
 }
 
-.live-row {
+.live-card {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px 10px;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px 12px;
   align-items: center;
-  padding: 14px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.live-row:last-child {
-  border-bottom: 0;
+  padding: 16px 16px 14px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035));
+  border: 1px solid var(--stroke);
+  border-radius: 22px;
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), var(--shadow);
 }
 
 .live-main {
   display: grid;
   min-width: 0;
-  gap: 2px;
+  gap: 3px;
 }
 
 .live-name {
@@ -623,6 +632,23 @@ textarea {
   color: var(--danger);
 }
 
+.live-trash {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--stroke);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.live-trash:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .live-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -630,7 +656,7 @@ textarea {
 }
 
 .live-btn {
-  padding: 5px 15px;
+  padding: 5px 16px;
   border: 1px solid var(--stroke);
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.05);
@@ -639,16 +665,6 @@ textarea {
   line-height: normal;
   text-decoration: none;
   cursor: pointer;
-}
-
-.live-btn.is-danger {
-  border-color: rgba(255, 107, 125, 0.4);
-  color: var(--danger);
-}
-
-.live-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* ---------- Footer ---------- */
