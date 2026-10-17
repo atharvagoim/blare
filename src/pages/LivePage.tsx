@@ -78,7 +78,7 @@ export function LivePage() {
   const rows = state.name === 'ready' ? state.shares.filter((s) => new Date(s.expiresAt).getTime() - (now + state.skew) > 0) : [];
 
   return (
-    <Screen decor={['cactus', 'sunflower']} label="Live links">
+    <Screen label="Live links">
       <Img className="logo" src={logo} rect={{ left: 46, top: 66, width: 312, height: 106 }} alt="Blare" />
       <T as="h1" cx={201} top={186} size={22}>
         Live links

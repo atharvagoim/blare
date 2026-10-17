@@ -1,19 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { eyeIcon, logo, monkey } from '../design/assets';
-import { Img, Monkey, Pill } from '../design/primitives';
+import { eyeIcon, logo } from '../design/assets';
+import { Img, Pill } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
-/**
- * A Figma input frame: 368 × 42, 3px black border, radius 30. `textLeft` is where the
- * placeholder starts, measured from the frame's outer edge, so typed text lines up with it.
- */
+/** A glass input: 368 × 42. Every field starts its text at the same x so the placeholders line up. */
 function Field({
   id,
   top,
-  textLeft,
   placeholder,
   value,
   onChange,
@@ -29,7 +25,6 @@ function Field({
 }: {
   id: string;
   top: number;
-  textLeft: number;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
@@ -65,7 +60,7 @@ function Field({
         onFocus={onFocus}
         onBlur={onBlur}
         // Figma places the text 3px below the field's vertical centre.
-        style={{ paddingLeft: textLeft - 3, paddingRight: password ? 40 : 16, paddingTop: 6, paddingBottom: 0 }}
+        style={{ paddingLeft: 24, paddingRight: password ? 44 : 20, paddingTop: 0, paddingBottom: 0 }}
       />
       {password && (
         <button
@@ -137,18 +132,17 @@ export function LoginPage() {
   }
 
   return (
-    <Screen decor={['cactus']} label="Login">
+    <Screen label="Login">
       <form onSubmit={submit} noValidate>
-        <Img className="logo" src={logo} rect={{ left: 90, top: 45, width: 222, height: 75 }} alt="Blare" />
-        <Monkey src={monkey} rect={{ left: 228, top: 150, width: 115, height: 134 }} />
-        <Field id="login-email" top={275} textLeft={31.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" autoFocus disabled={busy} invalid={error?.field === 'email' || error?.field === 'all'} value={email} onChange={setEmail} />
-        <Field id="login-password" top={335} textLeft={29.32} placeholder="Password" password autoComplete="current-password" disabled={busy} invalid={error?.field === 'password' || error?.field === 'all'} value={password} onChange={setPassword} />
-        <Pill type="submit" variant="black" rect={{ left: 127, top: 410, width: 148, height: 41 }} label={busy ? 'Logging in…' : 'Login'} disabled={busy} />
-        <p className="switch-note" style={{ top: 472 }}>
+        <Img className="logo" src={logo} rect={{ left: 66, top: 60, width: 270, height: 100 }} alt="Blare" />
+        <Field id="login-email" top={235} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" autoFocus disabled={busy} invalid={error?.field === 'email' || error?.field === 'all'} value={email} onChange={setEmail} />
+        <Field id="login-password" top={295} placeholder="Password" password autoComplete="current-password" disabled={busy} invalid={error?.field === 'password' || error?.field === 'all'} value={password} onChange={setPassword} />
+        <Pill type="submit" variant="black" rect={{ left: 127, top: 370, width: 148, height: 41 }} label={busy ? 'Logging in…' : 'Login'} disabled={busy} />
+        <p className="switch-note" style={{ top: 432 }}>
           Don&rsquo;t have an account? <Link to="/signup">Create a new one</Link>
         </p>
         {error && (
-          <p className="status is-error" role="alert" style={{ top: 504 }}>
+          <p className="status is-error" role="alert" style={{ top: 464 }}>
             <span className="bg">{error.message}</span>
           </p>
         )}
@@ -194,20 +188,19 @@ export function SignupPage() {
   }
 
   return (
-    <Screen decor={['cactus']} label="Sign up">
+    <Screen label="Sign up">
       <form onSubmit={submit} noValidate>
-        <Img className="logo" src={logo} rect={{ left: 90, top: 45, width: 222, height: 75 }} alt="Blare" />
-        <Monkey src={monkey} rect={{ left: 228, top: 150, width: 115, height: 134 }} />
-        <Field id="signup-name" top={275} textLeft={26.91} placeholder="Full name" autoComplete="name" autoFocus disabled={busy} invalid={error?.field === 'name'} value={name} onChange={setName} />
-        <Field id="signup-email" top={333} textLeft={27.27} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" disabled={busy} invalid={error?.field === 'email'} value={email} onChange={setEmail} />
-        <Field id="signup-password" top={391} textLeft={29.32} placeholder="Password" password autoComplete="new-password" disabled={busy} invalid={error?.field === 'password'} value={password} onChange={setPassword} />
-        <Field id="signup-confirm" top={449} textLeft={28.13} placeholder="Confirm password" password autoComplete="new-password" disabled={busy} invalid={error?.field === 'confirm'} value={confirm} onChange={setConfirm} />
-        <Pill type="submit" variant="black" rect={{ left: 127, top: 520, width: 148, height: 41 }} label={busy ? 'Creating…' : 'Sign up'} disabled={busy} />
-        <p className="switch-note" style={{ top: 574 }}>
+        <Img className="logo" src={logo} rect={{ left: 66, top: 60, width: 270, height: 100 }} alt="Blare" />
+        <Field id="signup-name" top={235} placeholder="Full name" autoComplete="name" autoFocus disabled={busy} invalid={error?.field === 'name'} value={name} onChange={setName} />
+        <Field id="signup-email" top={293} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" disabled={busy} invalid={error?.field === 'email'} value={email} onChange={setEmail} />
+        <Field id="signup-password" top={351} placeholder="Password" password autoComplete="new-password" disabled={busy} invalid={error?.field === 'password'} value={password} onChange={setPassword} />
+        <Field id="signup-confirm" top={409} placeholder="Confirm password" password autoComplete="new-password" disabled={busy} invalid={error?.field === 'confirm'} value={confirm} onChange={setConfirm} />
+        <Pill type="submit" variant="black" rect={{ left: 127, top: 480, width: 148, height: 41 }} label={busy ? 'Creating…' : 'Sign up'} disabled={busy} />
+        <p className="switch-note" style={{ top: 534 }}>
           Already have an account? <Link to="/login">Login</Link>
         </p>
         {error && (
-          <p className="status is-error" role="alert" style={{ top: 604 }}>
+          <p className="status is-error" role="alert" style={{ top: 564 }}>
             <span className="bg">{error.message}</span>
           </p>
         )}

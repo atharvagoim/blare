@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { cactus, menuIcon, sunflower } from './assets';
+import { menuIcon } from './assets';
 
-export type Decor = 'cactus' | 'cactus-low' | 'sunflower' | 'sunflower-expired';
-
-export function Screen({ decor, children, label, topRight }: { decor: Decor[]; children: ReactNode; label: string; topRight?: ReactNode }) {
+export function Screen({ children, label, topRight }: { children: ReactNode; label: string; topRight?: ReactNode }) {
   return (
     <>
     <div className="screen">
@@ -14,10 +12,6 @@ export function Screen({ decor, children, label, topRight }: { decor: Decor[]; c
       <main className="canvas-wrap" aria-label={label}>
         <div className="canvas">{children}</div>
       </main>
-      {decor.includes('cactus') && <img className="decor decor-cactus" src={cactus} alt="" />}
-      {decor.includes('cactus-low') && <img className="decor decor-cactus is-low" src={cactus} alt="" />}
-      {decor.includes('sunflower') && <img className="decor decor-sunflower" src={sunflower} alt="" />}
-      {decor.includes('sunflower-expired') && <img className="decor decor-sunflower is-expired" src={sunflower} alt="" />}
     </div>
     <Footer />
     </>
@@ -86,6 +80,9 @@ function Menu() {
       </button>
       {open && (
         <div id="site-menu" ref={panel} className="menu-panel">
+          <Link to="/" onClick={close}>
+            Create new link
+          </Link>
           <Link to="/live" onClick={close}>
             Live links
           </Link>

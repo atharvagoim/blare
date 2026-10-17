@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'rea
 import { Link, useNavigate } from 'react-router-dom';
 import { ACCEPT_ATTRIBUTE, DEFAULT_EXPIRY_SECONDS, EXPIRY_OPTIONS, LARGE_FILE_BYTES, LARGE_FILE_MAX_TTL_SECONDS, MAX_FILE_BYTES, MAX_TEXT_CHARS, PIN_LENGTH, classifyFileName } from '../../shared/limits';
 import { TURNSTILE_SITE_KEY, Turnstile } from '../components/Turnstile';
-import { liveSign, logo, radioOff, radioOn, selectFrame } from '../design/assets';
+import { logo } from '../design/assets';
 import { Img, Pill, T } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, uploadToStorage } from '../lib/api';
@@ -29,12 +29,10 @@ export function CreatePage() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    document.title = 'share';
+    document.title = 'Blare';
     return () => abortRef.current?.abort();
   }, []);
 
-  // The Private row grows to hold the PIN field, pushing the button and messages down.
-  const pinShift = visibility === 'private' ? 53 : 0;
   const isLarge = mode === 'file' && !!file && file.size > LARGE_FILE_BYTES;
 
   function pickFile(f: File | null | undefined) {
@@ -104,63 +102,36 @@ export function CreatePage() {
 
   return (
     <Screen
-      decor={['cactus', 'sunflower']}
       label="Create a link"
       topRight={
-        <Link to="/live" className="live-sign" aria-label="Live links" title="Live links">
-          <img src={liveSign} alt="" draggable={false} />
+        <Link to="/live" className="live-pill" aria-label="Live links">
+          Live links
         </Link>
       }
     >
       <form onSubmit={submit} noValidate>
-        <Img className="logo" src={logo} rect={{ left: 46, top: 66, width: 312, height: 106 }} alt="Blare" />
+        <Img className="logo" src={logo} rect={{ left: 66, top: 60, width: 270, height: 100 }} alt="Blare" />
 
-        {/* File / Text toggle */}
-        <div className="abs" role="group" aria-label="What are you sharing?" style={{ left: 142, top: 192, width: 130, height: 31 }}>
-          <div className="abs" style={{ inset: 0, background: '#000', borderRadius: 50 }} />
-          <div
-            className="abs"
-            style={{
-              top: 0,
-              left: mode === 'file' ? 0 : 65,
-              width: 65,
-              height: 31,
-              background: '#fff',
-              border: '2px solid #000',
-              borderRadius: 50,
-              transition: 'left 180ms ease',
-            }}
-          />
-          <button
-            type="button"
-            aria-pressed={mode === 'file'}
-            onClick={() => !busy && setMode('file')}
-            className="abs"
-            style={{ left: 0, top: 0, width: 65, height: 31, background: 'none', border: 0, cursor: 'pointer', padding: 0 }}
-          >
-            <span className="visually-hidden">File</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === 'text'}
-            onClick={() => !busy && setMode('text')}
-            className="abs"
-            style={{ left: 65, top: 0, width: 65, height: 31, background: 'none', border: 0, cursor: 'pointer', padding: 0 }}
-          >
-            <span className="visually-hidden">Text</span>
-          </button>
-        </div>
-        <T cx={175} top={194} size={18} width={98} color={mode === 'file' ? '#000' : '#fff'} style={{ transition: 'color 180ms' }}>
-          File
-        </T>
-        <T cx={237} top={194} size={18} width={98} color={mode === 'text' ? '#000' : '#fff'} style={{ transition: 'color 180ms' }}>
-          Text
-        </T>
+        {/* File / Text switch */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={mode === 'text'}
+          aria-label="Share text instead of a file"
+          className="mode-switch"
+          style={{ left: 162, top: 196, width: 78, height: 32 }}
+          onClick={() => !busy && setMode((m) => (m === 'file' ? 'text' : 'file'))}
+        >
+          <span className="mode-knob" />
+          <span className="mode-label" style={mode === 'file' ? { left: 32, right: 0, justifyContent: 'center' } : { left: 0, right: 32, justifyContent: 'center' }}>
+            {mode === 'file' ? 'File' : 'Text'}
+          </span>
+        </button>
 
         {/* Drop box / text box */}
         <div
           className="box"
-          style={{ left: 17, top: 255, width: 368, height: 220, background: dragOver ? '#f4f4f4' : '#fff' }}
+          style={{ left: 22, top: 258, width: 358, height: 214, background: dragOver ? 'rgba(255,255,255,0.14)' : undefined }}
           onDragOver={(e) => {
             e.preventDefault();
             if (mode === 'file') setDragOver(true);
@@ -177,16 +148,10 @@ export function CreatePage() {
                 onChange={(e) => pickFile(e.target.files?.[0])}
                 style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'inherit' }}
               />
-              <span
-                className="t"
-                style={{ left: 45, top: 83, width: 272, fontFamily: 'var(--inter)', fontWeight: 500, fontSize: 17, color: 'var(--drop-title)', overflow: 'hidden', textOverflow: 'ellipsis' }}
-              >
-                {file ? file.name : 'Drop a File or Choose one '}
+              <span className="t" style={{ left: 29, top: 80, width: 300, fontSize: 17, fontWeight: 400, color: 'var(--faint)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {file ? file.name : 'Drop a File or Choose one'}
               </span>
-              <span
-                className="t"
-                style={{ left: 45, top: 106, width: 272, fontFamily: 'var(--inter)', fontWeight: 500, fontSize: 14, color: 'var(--drop-sub)' }}
-              >
+              <span className="t" style={{ left: 29, top: 106, width: 300, fontSize: 13, color: 'var(--muted)' }}>
                 {file
                   ? `${fileKind === 'zip' ? 'Zip file' : fileKind === 'audio' ? 'Audio' : 'Image'}, ${formatBytes(file.size)}${isLarge ? ' · 15 min max' : ''} · tap to change`
                   : 'Images, audio or Zip files upto 500MB'}
@@ -212,13 +177,13 @@ export function CreatePage() {
                   border: 0,
                   outline: 'none',
                   resize: 'none',
-                  padding: '20px 22px',
+                  padding: '22px 24px',
                   background: 'transparent',
-                  fontFamily: 'var(--inter)',
-                  fontWeight: 500,
-                  fontSize: 17,
-                  lineHeight: 1.45,
-                  color: 'var(--drop-title)',
+                  fontFamily: 'var(--font)',
+                  fontWeight: 400,
+                  fontSize: 16,
+                  lineHeight: 1.5,
+                  color: 'var(--fg-soft)',
                 }}
               />
             </>
@@ -226,38 +191,8 @@ export function CreatePage() {
         </div>
 
         {/* Duration */}
-        <T as="label" cx={77} top={493} size={17} style={{ pointerEvents: 'auto' }}>
-          <span>Duration ?</span>
-        </T>
-        <div className="abs" style={{ left: 17, top: 522, width: 368, height: 41 }}>
-          <img src={selectFrame} alt="" width={368} height={41} style={{ display: 'block', pointerEvents: 'none' }} />
-          <select
-            aria-label="Duration"
-            value={ttl}
-            disabled={!!busy}
-            onChange={(e) => setTtl(Number(e.target.value))}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              border: 0,
-              borderRadius: 19,
-              background: 'transparent',
-              outline: 'none',
-              paddingLeft: 21.88,
-              paddingRight: 40,
-              paddingTop: 8,
-              paddingBottom: 0,
-              fontFamily: 'var(--alkalami)',
-              fontSize: 17,
-              lineHeight: 'normal',
-              color: '#000',
-              cursor: 'pointer',
-            }}
-          >
+        <div className="glass-select" style={{ left: 22, top: 498, width: 358, height: 42 }}>
+          <select aria-label="Duration" value={ttl} disabled={!!busy} onChange={(e) => setTtl(Number(e.target.value))}>
             {EXPIRY_OPTIONS.filter((o) => !isLarge || o.seconds <= LARGE_FILE_MAX_TTL_SECONDS).map((o) => (
               <option key={o.seconds} value={o.seconds}>
                 {o.label}
@@ -267,72 +202,43 @@ export function CreatePage() {
         </div>
 
         {/* Link type */}
-        <T cx={79} top={581} size={17}>
-          Link Type ?
-        </T>
-        <div role="radiogroup" aria-label="Link Type">
-          {(
-            [
-              { value: 'public', label: 'Public', row: 611, radio: 627, textTop: 621, cx: 89 },
-              { value: 'private', label: 'Private', row: 666, radio: 681, textTop: 674, cx: 92 },
-            ] as const
-          ).map((o) => {
-            const selected = visibility === o.value;
-            return (
-              <div key={o.value}>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  disabled={!!busy}
-                  onClick={() => setVisibility(o.value)}
-                  className="abs"
-                  style={{
-                    left: 17,
-                    top: o.row,
-                    width: 368,
-                    height: o.value === 'private' && selected ? 100 : 41,
-                    transition: 'height 300ms var(--ease-spring), border-color 200ms',
-                    background: '#fff',
-                    border: `3px solid ${selected ? '#000' : 'var(--grey-border)'}`,
-                    borderRadius: 30,
-                    padding: 0,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span className="visually-hidden">{o.label}</span>
-                </button>
-                <img className="abs" src={selected ? radioOn : radioOff} alt="" width={12} height={12} style={{ left: 37, top: o.radio, pointerEvents: 'none' }} />
-                <T cx={o.cx} top={o.textTop} size={17}>
-                  {o.label}
-                </T>
-                {o.value === 'private' && selected && (
-                  <div className="pin-field" style={{ left: 34, top: o.row + 47, width: 125, height: 38 }}>
-                    <label htmlFor="link-pin" className="visually-hidden">
-                      {PIN_LENGTH}-digit PIN for the receiver
-                    </label>
-                    <input
-                      id="link-pin"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      maxLength={PIN_LENGTH}
-                      placeholder={`${PIN_LENGTH}-digit PIN`}
-                      value={pin}
-                      disabled={!!busy}
-                      onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="glass-select" style={{ left: 22, top: 556, width: 358, height: 42 }}>
+          <select aria-label="Link type" value={visibility} disabled={!!busy} onChange={(e) => setVisibility(e.target.value as 'public' | 'private')}>
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
         </div>
+
+        {/* PIN (private links only) */}
+        {visibility === 'private' && (
+          <>
+            <T cx={201} top={620} size={15} color="var(--fg-soft)" width={200}>
+              Set pin
+            </T>
+            <div className="pin-field" style={{ left: 139, top: 648, width: 124, height: 38 }}>
+              <label htmlFor="link-pin" className="visually-hidden">
+                {PIN_LENGTH}-digit PIN for the receiver
+              </label>
+              <input
+                id="link-pin"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={PIN_LENGTH}
+                placeholder="····"
+                value={pin}
+                disabled={!!busy}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
+              />
+            </div>
+          </>
+        )}
 
         <Pill
           type="submit"
           variant="black"
-          rect={{ left: 126, top: 733 + pinShift, width: 148, height: 41 }}
+          rect={{ left: 129, top: 730, width: 144, height: 40 }}
           label={busy?.label ?? 'Create Link'}
+          labelTop={9}
           disabled={!!busy && busy.progress === undefined}
           progress={busy?.progress}
           onClick={busy?.progress !== undefined && busy.progress < 1 ? () => abortRef.current?.abort() : undefined}
@@ -340,16 +246,14 @@ export function CreatePage() {
         />
 
         {TURNSTILE_SITE_KEY && (
-          <div className="abs" style={{ left: 36, top: 790 + pinShift }}>
+          <div className="abs" style={{ left: 36, top: 784 }}>
             <Turnstile onToken={setTurnstileToken} resetKey={turnstileReset} />
           </div>
         )}
 
         {status && (
-          <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: 784 + pinShift }}>
-            <span className="bg">
-              {status.message}
-            </span>
+          <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: 782 }}>
+            <span className="bg">{status.message}</span>
           </p>
         )}
       </form>

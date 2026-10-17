@@ -5,7 +5,7 @@ export function T({
   cx,
   top,
   size,
-  color = '#000',
+  color = 'var(--fg)',
   width = 272,
   children,
   as: Tag = 'p',
@@ -104,14 +104,5 @@ export function Pill({
       </span>
       {children}
     </button>
-  );
-}
-
-/** The monkey peeks out from behind the field below it, ducks, and comes back. Clipped so he never shows below `rect`. */
-export function Monkey({ src, rect }: { src: string; rect: Rect }) {
-  return (
-    <div className="abs monkey-clip" style={rect}>
-      <img className="img-cover monkey" src={src} alt="" draggable={false} />
-    </div>
   );
 }

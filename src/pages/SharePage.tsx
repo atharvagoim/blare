@@ -5,7 +5,7 @@ import { copyIcon, crying, dog, logo, privateImage, shareIcon } from '../design/
 import { Img, Pill, T, type Rect } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, isLocked } from '../lib/api';
-import { forgetManageToken, getManageToken } from '../lib/manage';
+import { getManageToken } from '../lib/manage';
 
 type State =
   | { name: 'loading' }
@@ -47,13 +47,13 @@ export function SharePage() {
   }, [expiresAt]);
 
   useEffect(() => {
-    document.title = state.name === 'gone' ? 'Link expired · share' : 'share';
+    document.title = state.name === 'gone' ? 'Link expired · Blare' : 'Blare';
   }, [state.name]);
 
   switch (state.name) {
     case 'loading':
       return (
-        <Screen decor={['cactus', 'sunflower']} label="Loading">
+        <Screen label="Loading">
           <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
         </Screen>
       );
@@ -61,7 +61,7 @@ export function SharePage() {
       return <Expired />;
     case 'error':
       return (
-        <Screen decor={['cactus', 'sunflower']} label="Error">
+        <Screen label="Error">
           <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
           <p className="status is-error" role="alert" style={{ top: 240 }}>
             {state.message}
@@ -83,7 +83,7 @@ export function SharePage() {
 export function Expired() {
   const navigate = useNavigate();
   return (
-    <Screen decor={['cactus', 'sunflower-expired']} label="Link expired">
+    <Screen label="Link expired">
       <div className="abs" style={{ left: 73, top: 103, width: 256, height: 256, borderRadius: 20, overflow: 'hidden' }}>
         <img className="img-cover" src={dog} alt="" />
       </div>
@@ -106,32 +106,27 @@ export function Expired() {
 interface Layout {
   download: Rect & { cx: number; label: string };
   share: Rect & { textCx: number; textTop: number; iconLeft: number; iconTop: number };
-  del: Rect & { cx: number };
 }
 
 const LAYOUT_TEXT: Layout = {
   download: { left: 127, top: 471, width: 148, height: 41, cx: 201, label: 'Download' },
   share: { left: 127, top: 522, width: 148, height: 39, textCx: 188, textTop: 528, iconLeft: 92, iconTop: 10 },
-  del: { left: 127, top: 570, width: 148, height: 39, cx: 201 },
 };
 
 const LAYOUT_IMAGE: Layout = {
   download: { left: 127, top: 583, width: 148, height: 41, cx: 201, label: 'Download' },
   share: { left: 127, top: 634, width: 148, height: 39, textCx: 188, textTop: 640, iconLeft: 92, iconTop: 10 },
-  del: { left: 127, top: 682, width: 148, height: 39, cx: 201 },
 };
 
 const LAYOUT_ZIP: Layout = {
   download: { left: 98, top: 319, width: 207, height: 41, cx: 201, label: 'Download file' },
   share: { left: 127, top: 371, width: 148, height: 39, textCx: 188, textTop: 376, iconLeft: 92, iconTop: 9 },
-  del: { left: 127, top: 418, width: 148, height: 39, cx: 201 },
 };
 
 function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
   const url = `${window.location.origin}/s/${view.id}`;
   const [shareLabel, setShareLabel] = useState('Share');
   const [copied, setCopied] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -185,26 +180,10 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
     }
   }
 
-  async function remove() {
-    setDeleting(true);
-    setError(null);
-    try {
-      await api.deleteShare(view.id, getManageToken(view.id) ?? '');
-    } catch (err) {
-      if (!(err instanceof ApiError && (err.status === 404 || err.status === 410))) {
-        setDeleting(false);
-        setError(err instanceof Error ? err.message : 'Could not delete this link.');
-        return;
-      }
-    }
-    forgetManageToken(view.id);
-    onGone();
-  }
-
-  const statusTop = layout.del.top + layout.del.height + 24;
+  const statusTop = layout.share.top + layout.share.height + 24;
 
   return (
-    <Screen decor={['cactus', 'sunflower']} label="Shared file">
+    <Screen label="Shared file">
       <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
 
       {view.kind === 'image' && (
@@ -226,7 +205,7 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
               overflow: 'auto',
               whiteSpace: 'pre-wrap',
               overflowWrap: 'anywhere',
-              fontFamily: 'var(--inter)',
+              fontFamily: 'var(--font)',
               fontWeight: 500,
               fontSize: 16,
               lineHeight: 1.5,
@@ -244,7 +223,7 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
             className="abs"
             style={{ left: 321, top: 17, width: 25, height: 25, padding: 0, border: 0, background: 'transparent', cursor: 'pointer' }}
           >
-            <img src={copyIcon} alt="" width={25} height={25} style={{ display: 'block', transform: 'scaleX(-1)', opacity: copied ? 0.35 : 1, transition: 'opacity 150ms' }} />
+            <img className="ico" src={copyIcon} alt="" width={25} height={25} style={{ display: 'block', transform: 'scaleX(-1)', opacity: copied ? 0.35 : 1, transition: 'opacity 150ms' }} />
           </button>
         </div>
       )}
@@ -275,6 +254,7 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
         aria-live="polite"
       >
         <img
+          className="ico"
           src={shareIcon}
           alt=""
           width={18}
@@ -294,10 +274,6 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
           {shareLabel}
         </span>
       </button>
-
-      {view.canDelete && (
-        <Pill variant="red" rect={layout.del} label={deleting ? 'Deleting…' : 'Delete'} labelTop={6} labelCx={layout.del.cx - layout.del.left} onClick={remove} disabled={deleting} />
-      )}
 
       {error && (
         <p className="status is-error" role="alert" style={{ top: statusTop }}>
@@ -337,7 +313,7 @@ function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUn
   }
 
   return (
-    <Screen decor={['cactus', 'sunflower']} label="Private file">
+    <Screen label="Private file">
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
         <T as="h1" cx={202} top={221} size={19}>
