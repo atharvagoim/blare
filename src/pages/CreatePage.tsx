@@ -8,15 +8,19 @@ import { Screen } from '../design/Screen';
 import { ApiError, api, uploadToStorage } from '../lib/api';
 import { formatBytes } from '../lib/format';
 import { saveManageToken } from '../lib/manage';
+import { ZIP_OVERHEAD_PER_FILE, zipFiles } from '../lib/zip';
 
 type Mode = 'file' | 'text';
+
+/** Most files one link can carry (they are packed into a single Zip). */
+const MAX_FILES = 50;
 type Status = { kind: 'error'; message: string } | null;
 
 // Figma frame "iPhone 17 - 1"
 export function CreatePage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('file');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [text, setText] = useState('');
   const [ttl, setTtl] = useState<number>(DEFAULT_EXPIRY_SECONDS);
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
@@ -35,52 +39,64 @@ export function CreatePage() {
 
   // Public links have no PIN row, so the button tucks up under the dropdowns.
   const buttonTop = visibility === 'private' ? 730 : 640;
-  const isLarge = mode === 'file' && !!file && file.size > LARGE_FILE_BYTES;
+  const file = files.length === 1 ? files[0]! : null;
+  const totalSize = files.reduce((n, f) => n + f.size, 0) + (files.length > 1 ? files.length * ZIP_OVERHEAD_PER_FILE : 0);
+  const isLarge = mode === 'file' && totalSize > LARGE_FILE_BYTES;
 
-  function pickFile(f: File | null | undefined) {
+  function pickFiles(list: FileList | File[] | null | undefined) {
     setStatus(null);
-    if (!f) return;
-    if (!classifyFileName(f.name)) return setStatus({ kind: 'error', message: 'That file type isn’t supported. Choose an image, audio or Zip file.' });
-    if (f.size === 0) return setStatus({ kind: 'error', message: 'That file is empty.' });
-    if (f.size > MAX_FILE_BYTES) return setStatus({ kind: 'error', message: `That file is ${formatBytes(f.size)}. The limit is 500MB.` });
-    if (f.size > LARGE_FILE_BYTES) setTtl((t) => Math.min(t, LARGE_FILE_MAX_TTL_SECONDS));
-    setFile(f);
+    const picked = Array.from(list ?? []);
+    if (picked.length === 0) return;
+    if (picked.length > MAX_FILES) return setStatus({ kind: 'error', message: `You can share up to ${MAX_FILES} files at once.` });
+    const bad = picked.find((f) => !classifyFileName(f.name));
+    if (bad) return setStatus({ kind: 'error', message: `“${bad.name}” isn’t supported. Choose images, audio or Zip files.` });
+    if (picked.some((f) => f.size === 0)) return setStatus({ kind: 'error', message: 'One of those files is empty.' });
+    const total = picked.reduce((n, f) => n + f.size, 0) + (picked.length > 1 ? picked.length * ZIP_OVERHEAD_PER_FILE : 0);
+    if (total > MAX_FILE_BYTES) return setStatus({ kind: 'error', message: `That is ${formatBytes(total)} in total. The limit is 500MB.` });
+    if (total > LARGE_FILE_BYTES) setTtl((t) => Math.min(t, LARGE_FILE_MAX_TTL_SECONDS));
+    setFiles(picked);
   }
 
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    if (!busy && mode === 'file') pickFile(e.dataTransfer.files?.[0]);
+    if (!busy && mode === 'file') pickFiles(e.dataTransfer.files);
   }
 
   async function submit(e?: FormEvent) {
     e?.preventDefault();
     if (busy) return;
     setStatus(null);
-    if (mode === 'file' && !file) return setStatus({ kind: 'error', message: 'Choose a file to share.' });
+    if (mode === 'file' && files.length === 0) return setStatus({ kind: 'error', message: 'Choose a file to share.' });
     if (mode === 'text' && !text.trim()) return setStatus({ kind: 'error', message: 'Write some text to share.' });
     if (visibility === 'private' && pin.length !== PIN_LENGTH) return setStatus({ kind: 'error', message: `Choose a ${PIN_LENGTH}-digit PIN for the private link.` });
     if (TURNSTILE_SITE_KEY && !turnstileToken) return setStatus({ kind: 'error', message: 'Complete the verification check first.' });
 
     try {
+      // Several files travel as one Zip, built here in the browser.
+      let upload: File | null = file;
+      if (mode === 'file' && files.length > 1) {
+        setBusy({ label: 'Zipping 0%' });
+        upload = await zipFiles(files, (p) => setBusy({ label: `Zipping ${Math.round(p * 100)}%` }));
+      }
       setBusy({ label: mode === 'file' ? 'Uploading 0%' : 'Creating…', progress: mode === 'file' ? 0 : undefined });
       const res = await api.createShare({
         type: mode,
         text: mode === 'text' ? text : undefined,
-        file: mode === 'file' && file ? { name: file.name, size: file.size, mime: file.type } : undefined,
+        file: mode === 'file' && upload ? { name: upload.name, size: upload.size, mime: upload.type } : undefined,
         ttlSeconds: ttl,
         visibility,
         pin: visibility === 'private' ? pin : undefined,
         turnstileToken,
       });
       let expiresAt = res.expiresAt;
-      if (mode === 'file' && file && res.upload) {
+      if (mode === 'file' && upload && res.upload) {
         const controller = new AbortController();
         abortRef.current = controller;
         await uploadToStorage(
           res.upload.url,
           res.upload.headers,
-          file,
+          upload,
           (p) => setBusy({ label: `Uploading ${Math.round(p * 100)}%`, progress: p }),
           controller.signal,
         );
@@ -100,7 +116,7 @@ export function CreatePage() {
     }
   }
 
-  const fileKind = file ? classifyFileName(file.name)?.kind : null;
+  const fileKind = file ? classifyFileName(file.name)?.kind : files.length > 1 ? 'zip' : null;
 
   return (
     <Screen
@@ -146,18 +162,21 @@ export function CreatePage() {
             <label style={{ position: 'absolute', inset: 0, cursor: busy ? 'default' : 'pointer' }}>
               <input
                 type="file"
+                multiple
                 accept={ACCEPT_ATTRIBUTE}
                 disabled={!!busy}
-                onChange={(e) => pickFile(e.target.files?.[0])}
+                onChange={(e) => pickFiles(e.target.files)}
                 style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'inherit' }}
               />
               <span className="t" style={{ left: 29, top: 80, width: 300, fontSize: 17, fontWeight: 400, color: 'var(--faint)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {file ? file.name : 'Drop a File or Choose one'}
+                {files.length === 0 ? 'Drop files or Choose' : files.length === 1 ? files[0]!.name : files.map((f) => f.name).join(', ')}
               </span>
               <span className="t" style={{ left: 29, top: 106, width: 300, fontSize: 13, color: 'var(--muted)' }}>
-                {file
-                  ? `${fileKind === 'zip' ? 'Zip file' : fileKind === 'audio' ? 'Audio' : 'Image'}, ${formatBytes(file.size)}${isLarge ? ' · 15 min max' : ''} · tap to change`
-                  : 'Images, audio or Zip files upto 500MB'}
+                {files.length === 0
+                  ? 'Images, audio or Zip files upto 500MB'
+                  : files.length === 1
+                    ? `${fileKind === 'zip' ? 'Zip file' : fileKind === 'audio' ? 'Audio' : 'Image'}, ${formatBytes(totalSize)}${isLarge ? ' · 15 min max' : ''} · tap to change`
+                    : `${files.length} files · ${formatBytes(totalSize)} · sent as one Zip${isLarge ? ' · 15 min max' : ''}`}
               </span>
             </label>
           ) : (
