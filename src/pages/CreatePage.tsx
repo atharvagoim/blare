@@ -202,7 +202,7 @@ export function CreatePage() {
                   background: 'transparent',
                   fontFamily: 'var(--font)',
                   fontWeight: 400,
-                  fontSize: 16,
+                  fontSize: 17,
                   lineHeight: 1.5,
                   color: 'var(--fg-soft)',
                 }}
