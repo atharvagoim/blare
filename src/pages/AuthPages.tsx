@@ -132,7 +132,7 @@ export function LoginPage() {
   }
 
   return (
-    <Screen label="Login">
+    <Screen label="Login" height={560}>
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 66, top: 60, width: 270, height: 100 }} alt="Blare" />
         <Field id="login-email" top={235} placeholder="Email ID" type="email" inputMode="email" autoComplete="email" autoFocus disabled={busy} invalid={error?.field === 'email' || error?.field === 'all'} value={email} onChange={setEmail} />
@@ -188,7 +188,7 @@ export function SignupPage() {
   }
 
   return (
-    <Screen label="Sign up">
+    <Screen label="Sign up" height={640}>
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 66, top: 60, width: 270, height: 100 }} alt="Blare" />
         <Field id="signup-name" top={235} placeholder="Full name" autoComplete="name" autoFocus disabled={busy} invalid={error?.field === 'name'} value={name} onChange={setName} />

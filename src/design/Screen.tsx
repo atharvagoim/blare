@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { menuIcon } from './assets';
 
-export function Screen({ children, label, topRight }: { children: ReactNode; label: string; topRight?: ReactNode }) {
+/** `height` is the canvas height in px (default 874); pages with less content pass less so there is no dead space above the footer. */
+export function Screen({ children, label, topRight, height = 874 }: { children: ReactNode; label: string; topRight?: ReactNode; height?: number }) {
   return (
     <>
-    <div className="screen">
+    <div className="screen" style={{ ['--h' as string]: `${height}px` }}>
       <Menu />
       {topRight && <div className="top-action">{topRight}</div>}
       <main className="canvas-wrap" aria-label={label}>

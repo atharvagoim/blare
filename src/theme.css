@@ -79,7 +79,7 @@ textarea {
 .screen {
   position: relative;
   width: 100%;
-  min-height: max(calc(100dvh - 120px), calc(874px * var(--s)));
+  min-height: max(calc(100dvh - 120px), calc(var(--h, 874px) * var(--s)));
   overflow: hidden;
   isolation: isolate;
   background:
@@ -91,7 +91,7 @@ textarea {
 .canvas-wrap {
   position: relative;
   width: calc(402px * var(--s));
-  height: calc(874px * var(--s));
+  height: calc(var(--h, 874px) * var(--s));
   margin: 0 auto;
   z-index: 1;
 }
@@ -101,7 +101,7 @@ textarea {
   left: 0;
   top: 0;
   width: 402px;
-  height: 874px;
+  height: var(--h, 874px);
   transform: scale(var(--s));
   transform-origin: 0 0;
 }

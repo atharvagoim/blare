@@ -78,7 +78,7 @@ export function LivePage() {
   const rows = state.name === 'ready' ? state.shares.filter((s) => new Date(s.expiresAt).getTime() - (now + state.skew) > 0) : [];
 
   return (
-    <Screen label="Live links">
+    <Screen label="Live links" height={860}>
       <Img className="logo" src={logo} rect={{ left: 46, top: 66, width: 312, height: 106 }} alt="Blare" />
       <div className="live-scroll" style={{ left: 18, top: 200, width: 368, height: 560 }}>
         {state.name === 'loading' && <p className="live-empty">Loading…</p>}

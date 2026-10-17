@@ -53,7 +53,7 @@ export function SharePage() {
   switch (state.name) {
     case 'loading':
       return (
-        <Screen label="Loading">
+        <Screen label="Loading" height={420}>
           <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
         </Screen>
       );
@@ -61,7 +61,7 @@ export function SharePage() {
       return <Expired />;
     case 'error':
       return (
-        <Screen label="Error">
+        <Screen label="Error" height={420}>
           <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
           <p className="status is-error" role="alert" style={{ top: 240 }}>
             {state.message}
@@ -83,7 +83,7 @@ export function SharePage() {
 export function Expired() {
   const navigate = useNavigate();
   return (
-    <Screen label="Link expired">
+    <Screen label="Link expired" height={540}>
       <Img className="logo" src={logo} rect={{ left: 66, top: 230, width: 270, height: 100 }} alt="Blare" />
       <T cx={201} top={362} size={26} width={360} style={{ animation: 'none' }}>
         The link has expired
@@ -179,7 +179,7 @@ function Ready({ view, onGone }: { view: ShareView; onGone: () => void }) {
   const statusTop = layout.share.top + layout.share.height + 24;
 
   return (
-    <Screen label="Shared file">
+    <Screen label="Shared file" height={layout.share.top + 40 + 110}>
       <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
 
       {view.kind === 'image' && (
@@ -292,7 +292,7 @@ function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUn
   }
 
   return (
-    <Screen label="Private file">
+    <Screen label="Private file" height={580}>
       <form onSubmit={submit} noValidate>
         <Img className="logo" src={logo} rect={{ left: 66, top: 180, width: 270, height: 100 }} alt="Blare" />
         <T cx={201} top={304} size={22} style={{ animation: 'none' }}>

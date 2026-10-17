@@ -33,6 +33,8 @@ export function CreatePage() {
     return () => abortRef.current?.abort();
   }, []);
 
+  // Public links have no PIN row, so the button tucks up under the dropdowns.
+  const buttonTop = visibility === 'private' ? 730 : 640;
   const isLarge = mode === 'file' && !!file && file.size > LARGE_FILE_BYTES;
 
   function pickFile(f: File | null | undefined) {
@@ -103,6 +105,7 @@ export function CreatePage() {
   return (
     <Screen
       label="Create a link"
+      height={visibility === 'private' ? 840 : 750}
       topRight={
         <Link to="/live" className="live-pill" aria-label="Live links">
           Live links
@@ -240,7 +243,7 @@ export function CreatePage() {
         <Pill
           type="submit"
           variant="black"
-          rect={{ left: 129, top: 730, width: 144, height: 40 }}
+          rect={{ left: 129, top: buttonTop, width: 144, height: 40 }}
           label={busy?.label ?? 'Create Link'}
           labelTop={9}
           disabled={!!busy && busy.progress === undefined}
@@ -250,13 +253,13 @@ export function CreatePage() {
         />
 
         {TURNSTILE_SITE_KEY && (
-          <div className="abs" style={{ left: 36, top: 784 }}>
+          <div className="abs" style={{ left: 36, top: buttonTop + 54 }}>
             <Turnstile onToken={setTurnstileToken} resetKey={turnstileReset} />
           </div>
         )}
 
         {status && (
-          <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: 782 }}>
+          <p className={`status ${status.kind === 'error' ? 'is-error' : ''}`} role="alert" style={{ top: buttonTop + 52 }}>
             <span className="bg">{status.message}</span>
           </p>
         )}
