@@ -760,14 +760,16 @@ textarea {
     backdrop-filter: none;
     box-shadow: none;
     font-size: 13px;
-    color: var(--fg-soft);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
   }
 
   .live-pill:hover {
     transform: none;
-    color: var(--fg);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .live-more {
+    display: none;
   }
 }

@@ -108,7 +108,7 @@ export function CreatePage() {
       height={visibility === 'private' ? 840 : 750}
       topRight={
         <Link to="/live" className="live-pill" aria-label="Live links">
-          Live links
+          Live<span className="live-more"> links</span>
         </Link>
       }
     >

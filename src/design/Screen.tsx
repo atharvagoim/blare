@@ -28,9 +28,8 @@ function Footer() {
           <span className="footer-tag">Share files &amp; text with a link that disappears on your schedule.</span>
         </div>
         <nav className="footer-nav" aria-label="Footer">
-          <Link to="/">Create link</Link>
-          <Link to="/login">Login</Link>
-          <Link to="/signup">Sign up</Link>
+          <Link to="/">Create new</Link>
+          <Link to="/live">Live links</Link>
         </nav>
       </div>
       <p className="footer-copy">&copy; {new Date().getFullYear()} Blare. All rights reserved.</p>
