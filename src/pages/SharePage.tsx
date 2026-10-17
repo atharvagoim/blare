@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PIN_LENGTH, type LockedShareView, type ShareView } from '../../shared/limits';
-import { copyIcon, logo, privateImage, shareIcon } from '../design/assets';
+import { copyIcon, logo, shareIcon } from '../design/assets';
 import { Img, Pill, T, type Rect } from '../design/primitives';
 import { Screen } from '../design/Screen';
 import { ApiError, api, isLocked } from '../lib/api';
@@ -294,15 +294,11 @@ function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUn
   return (
     <Screen label="Private file">
       <form onSubmit={submit} noValidate>
-        <Img className="logo" src={logo} rect={{ left: 46, top: 87, width: 312, height: 106 }} alt="Blare" />
-        <T as="h1" cx={202} top={221} size={19}>
+        <Img className="logo" src={logo} rect={{ left: 66, top: 180, width: 270, height: 100 }} alt="Blare" />
+        <T cx={201} top={304} size={22} style={{ animation: 'none' }}>
           Private file !
         </T>
-        <div className="abs" style={{ left: 33, top: 268, width: 339, height: 191, borderRadius: 20, overflow: 'hidden' }}>
-          <img className="img-cover" src={privateImage} alt="" />
-        </div>
-
-        <div className="field" style={{ left: 107, top: 489, width: 187, height: 49, borderWidth: 2 }}>
+        <div className="field" style={{ left: 107, top: 358, width: 187, height: 49 }}>
           <label htmlFor="pin" className="visually-hidden">
             PIN
           </label>
@@ -322,14 +318,13 @@ function PrivateFile({ view, onUnlocked, onGone }: { view: LockedShareView; onUn
         <Pill
           type="submit"
           variant="black"
-          rect={{ left: 99, top: 552, width: 207, height: 41 }}
+          rect={{ left: 113, top: 426, width: 176, height: 40 }}
           label={busy ? 'Checking…' : 'Unlock'}
-          labelCx={202 - 99}
           disabled={busy}
         />
 
         {status && (
-          <p className={`status ${status.error ? 'is-error' : ''}`} role={status.error ? 'alert' : 'status'} style={{ top: 606 }}>
+          <p className={`status ${status.error ? 'is-error' : ''}`} role={status.error ? 'alert' : 'status'} style={{ top: 484 }}>
             <span className="bg">{status.text}</span>
           </p>
         )}

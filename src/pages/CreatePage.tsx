@@ -168,7 +168,6 @@ export function CreatePage() {
                 maxLength={MAX_TEXT_CHARS}
                 disabled={!!busy}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Type or paste your text"
                 style={{
                   position: 'absolute',
                   inset: 0,
@@ -186,6 +185,11 @@ export function CreatePage() {
                   color: 'var(--fg-soft)',
                 }}
               />
+              {!text && (
+                <span className="t" style={{ left: 29, top: 94, width: 300, fontSize: 17, fontWeight: 400, color: 'var(--faint)' }}>
+                  Type or paste your text
+                </span>
+              )}
             </>
           )}
         </div>
