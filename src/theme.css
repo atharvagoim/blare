@@ -748,3 +748,26 @@ textarea {
 .logo .img-cover {
   object-fit: contain;
 }
+
+/* On phones, "Live links" is just text, not a button */
+@media (max-width: 600px) {
+  .live-pill {
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    font-size: 13px;
+    color: var(--fg-soft);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .live-pill:hover {
+    transform: none;
+    color: var(--fg);
+  }
+}
